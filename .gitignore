@@ -1,0 +1,5 @@
+/build
+/sdkconfig.defaults
+/sdkconfig.defaults.esp32c2
+/sdkconfig.defaults.esp32c3
+/sdkconfig.defaults.esp32s3

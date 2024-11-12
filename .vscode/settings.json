@@ -1,0 +1,15 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.adapterTargetName": "esp32s3",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.port": "/dev/ttyACM0",
+  "idf.flashType": "UART",
+  "files.associations": {
+    "*.tcc": "c",
+    "cmath": "c",
+    "random": "c",
+    "numbers": "c"
+  }
+}
