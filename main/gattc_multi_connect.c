@@ -40,7 +40,7 @@ const char *GATTC_TAG = "GATTC_MULTIPLE_DEMO";
 
 /* register three profiles, each profile corresponds to one connection,
    which makes it easy to handle each connection event */
-#define PROFILE_NUM 2
+#define PROFILE_NUM 3
 #define PROFILE_A_APP_ID 0
 #define PROFILE_B_APP_ID 1
 #define PROFILE_C_APP_ID 2
@@ -85,7 +85,7 @@ static float laps_num_c;
 
 static bool conn_device_a   = false;
 static bool conn_device_b   = false;
-static bool conn_device_c   = true;
+static bool conn_device_c   = false;
 
 static bool get_service_a   = false;
 static bool get_service_b   = false;
@@ -101,7 +101,7 @@ static esp_gattc_descr_elem_t *descr_elem_result_b  = NULL;
 static esp_gattc_char_elem_t  *char_elem_result_c   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result_c  = NULL;
 
-static const char remote_device_name[3][20] = { "NodeB-V3.11","im600-V3.07", "ESP_GATTS_DEMO_c"};
+static const char remote_device_name[3][20] = { "NodeB-V3.11","isdm600-V3.07", "im600-V3.07"};
 
 static esp_ble_scan_params_t ble_scan_params = {
     .scan_type              = BLE_SCAN_TYPE_ACTIVE,
@@ -133,10 +133,10 @@ static struct gattc_profile_inst gl_profile_tab[PROFILE_NUM] = {
         .gattc_cb = gattc_profile_b_event_handler,
         .gattc_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     },
-    // [PROFILE_C_APP_ID] = {
-    //     .gattc_cb = gattc_profile_c_event_handler,
-    //     .gattc_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
-    // },
+    [PROFILE_C_APP_ID] = {
+        .gattc_cb = gattc_profile_c_event_handler,
+        .gattc_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
+    },
 
 };
 
