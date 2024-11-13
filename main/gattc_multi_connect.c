@@ -33,8 +33,14 @@
 #include "esp_gatt_common_api.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
-
+#include "uart.h"
+#include  <string.h>
 const char *GATTC_TAG = "GATTC_MULTIPLE_DEMO";
+
+#define CTL 0x0c40//功能订阅标识
+#define UploadFrequency     1//上传频率，#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
+
+
 #define REMOTE_SERVICE_UUID        0xae30
 #define REMOTE_NOTIFY_CHAR_UUID    0xae02
 
@@ -46,7 +52,7 @@ const char *GATTC_TAG = "GATTC_MULTIPLE_DEMO";
 #define PROFILE_C_APP_ID 2
 #define INVALID_HANDLE   0
 
-void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu);
+void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu,int *adcValue,uint8_t gpioValue);
 
 /* Declare static functions */
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
@@ -74,7 +80,7 @@ static esp_bt_uuid_t notify_descr_uuid = {
     .len = ESP_UUID_LEN_16,
     .uuid = {.uuid16 = 0x2902,},
 };
-
+//设置蓝牙设备工作参数的标志
 static uint8_t set_device_a = 0;
 static uint8_t set_device_b = 0;
 static uint8_t set_device_c = 0;
@@ -324,8 +330,17 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
     case ESP_GATTC_NOTIFY_EVT:
         ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, Receive notify value:");
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
-        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&laps_num_a);
-        ESP_LOGI(GATTC_TAG,"圈数：%3f",laps_num_a);
+        if (p_data->notify.value_len < 3)
+        {
+            /* code */
+        }
+        else
+        {
+            Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&a.circles,&a.adc_value,a.gpio_value);
+            ESP_LOGI(GATTC_TAG,"圈数：%.3f",a.circles);
+        }
+        
+        
         break;
     case ESP_GATTC_WRITE_DESCR_EVT:
         if (p_data->write.status != ESP_GATT_OK){
@@ -426,14 +441,14 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             //发送数据注意用write no response方式。
             uint8_t isCompassOn = 0;// #使用磁场融合姿态
             uint8_t barometerFilter = 2;//
-            uint16_t Cmd_ReportTag = 0x0040;// # 功能订阅标识
+            uint16_t Cmd_ReportTag = CTL;// # 功能订阅标识
             uint8_t params[11] ;
             params[0] = 0x12;
             params[1] = 5 ;      //#静止状态加速度阀值
             params[2] = 255;     //#静止归零速度(单位cm/s) 0:不归零 255:立即归零
             params[3] = 0  ;     //#动态归零速度(单位cm/s) 0:不归零
             params[4] = ((barometerFilter&3)<<1) | (isCompassOn&1);   
-            params[5] = 1;      //#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
+            params[5] = UploadFrequency;      //#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
             params[6] = 1 ;      //#陀螺仪滤波系数[取值0-2],数值越大越平稳但实时性越差
             params[7] = 3 ;      //#加速计滤波系数[取值0-4],数值越大越平稳但实时性越差
             params[8] = 5  ;     //#磁力计滤波系数[取值0-9],数值越大越平稳但实时性越差
@@ -705,8 +720,16 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
     case ESP_GATTC_NOTIFY_EVT:
         ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, Receive notify value:");
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
-        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&laps_num_b);
-        ESP_LOGI(GATTC_TAG,"圈数：%3f",laps_num_b);
+        if (p_data->notify.value_len < 3)
+        {
+            /* code */
+        }
+        else
+        {
+        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&b.circles,&b.adc_value,b.gpio_value);
+        ESP_LOGI(GATTC_TAG,"圈数：%3f",b.circles);
+        }        
+
         break;
     case ESP_GATTC_WRITE_DESCR_EVT:
         if (p_data->write.status != ESP_GATT_OK){
@@ -804,14 +827,14 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             //发送数据注意用write no response方式。
             uint8_t isCompassOn = 0;// #使用磁场融合姿态
             uint8_t barometerFilter = 2;//
-            uint16_t Cmd_ReportTag = 0x0040;// # 功能订阅标识
+            uint16_t Cmd_ReportTag = CTL;// # 功能订阅标识
             uint8_t params[11] ;
             params[0] = 0x12;
             params[1] = 5 ;      //#静止状态加速度阀值
             params[2] = 255;     //#静止归零速度(单位cm/s) 0:不归零 255:立即归零
             params[3] = 0  ;     //#动态归零速度(单位cm/s) 0:不归零
             params[4] = ((barometerFilter&3)<<1) | (isCompassOn&1);   
-            params[5] = 1;      //#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
+            params[5] = UploadFrequency;      //#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
             params[6] = 1 ;      //#陀螺仪滤波系数[取值0-2],数值越大越平稳但实时性越差
             params[7] = 3 ;      //#加速计滤波系数[取值0-4],数值越大越平稳但实时性越差
             params[8] = 5  ;     //#磁力计滤波系数[取值0-9],数值越大越平稳但实时性越差
@@ -1069,8 +1092,16 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
     case ESP_GATTC_NOTIFY_EVT:
         ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, Receive notify value:");
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
-        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&laps_num_c);
-        ESP_LOGI(GATTC_TAG,"圈数：%3f",laps_num_c);
+        if (p_data->notify.value_len < 3)
+        {
+            /* code */
+        }
+        else
+        {
+        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&c.circles,&c.adc_value,c.gpio_value);
+        ESP_LOGI(GATTC_TAG,"圈数：%3f",c.circles);
+        } 
+
         break;
     case ESP_GATTC_WRITE_DESCR_EVT:
         if (p_data->write.status != ESP_GATT_OK){
@@ -1168,14 +1199,14 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             //发送数据注意用write no response方式。
             uint8_t isCompassOn = 0;// #使用磁场融合姿态
             uint8_t barometerFilter = 2;//
-            uint16_t Cmd_ReportTag = 0x0040;// # 功能订阅标识
+            uint16_t Cmd_ReportTag = CTL;// # 功能订阅标识
             uint8_t params[11] ;
             params[0] = 0x12;
             params[1] = 5 ;      //#静止状态加速度阀值
             params[2] = 255;     //#静止归零速度(单位cm/s) 0:不归零 255:立即归零
             params[3] = 0  ;     //#动态归零速度(单位cm/s) 0:不归零
             params[4] = ((barometerFilter&3)<<1) | (isCompassOn&1);   
-            params[5] = 1;      //#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
+            params[5] = UploadFrequency;      //#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
             params[6] = 1 ;      //#陀螺仪滤波系数[取值0-2],数值越大越平稳但实时性越差
             params[7] = 3 ;      //#加速计滤波系数[取值0-4],数值越大越平稳但实时性越差
             params[8] = 5  ;     //#磁力计滤波系数[取值0-9],数值越大越平稳但实时性越差
@@ -1423,6 +1454,22 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+        // 复制字符串到结构体的 name 成员
+    strcpy(a.name, remote_device_name[0]);
+    strcpy(b.name, remote_device_name[1]);
+    strcpy(c.name, remote_device_name[2]);
+
+            // 复制字符串到结构体的 device_id 成员
+    strcpy(a.device_id, "a");
+    strcpy(b.device_id, "b");
+    strcpy(c.device_id, "c");
+
+    a.state = Unknow;
+    b.state = Unknow;
+    c.state = Unknow;
+
+
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 

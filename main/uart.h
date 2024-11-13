@@ -18,6 +18,7 @@
 #include "cJSON.h"
 #include "stdarg.h"
 typedef enum{
+    Unknow,
     Close,
     MidProcess,
     Open
@@ -30,8 +31,9 @@ typedef struct
     volatile float circles;              // 圈数或某种计数值
     volatile int battery_level;        // 电池电量百分比
     volatile bool contact_switch;      //接触开关是否触发
-    int adc_value;            //adc值
-    Device_State state;       //设备开关状态
+    volatile int adc_value;            //adc值
+    volatile uint8_t gpio_value;
+    volatile Device_State state;       //设备开关状态
 }Device;
 extern Device a,b,c;
 

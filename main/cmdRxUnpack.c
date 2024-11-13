@@ -29,7 +29,7 @@ typedef float                  F32;
  * @param buf 把收到的数据包的数据体，传入到该指针
  * @param Dlen 该数据体的长度 字节数
  */
-void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu)
+void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu,int *adcValue,uint8_t *gpioValue)
 {
     U16 ctl; // 数据订阅标识 标签0x11功能用到
     U8 L; // 标签0x11功能用到
@@ -170,12 +170,13 @@ void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu)
         if ((ctl & 0x0400) != 0)
         {// ADC的值
             tmpU16 = (U16)(((U16)buf[L+1]<<8) | ((U16)buf[L]<<0)); L += 2; printf("\tadc: %u\r\n", tmpU16); // 10位精度ADC的电压值(0-VDDIO) mv
-        
+            *adcValue = tmpU16;
         }
         if ((ctl & 0x0800) != 0)
         {// GPIO1的值
             tmpU8 = buf[L]; L += 1;
             printf("\t GPIO1  M:%X, N:%X\r\n", (tmpU8>>4)&0x0f, (tmpU8)&0x0f);
+            *gpioValue = (tmpU8)&0x0f;
 //             假如值为0xMN  则解析为：
 //   M的值:      0=浮空输入,
 //              1=上拉输入,
@@ -183,7 +184,7 @@ void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu)
 //              3=输出0,
 //              4=输出1
 //   N的值:表示IO的当前真实电平值
-            
+
         }
         break;
     case 0x12: // 设置参数 回复
