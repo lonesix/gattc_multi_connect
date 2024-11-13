@@ -1,3 +1,3 @@
-idf_component_register(SRCS "gattc_multi_connect.c"
+idf_component_register(SRCS "uart.c" "gattc_multi_connect.c"
                             "cmdRxUnpack.c"
                     INCLUDE_DIRS ".")

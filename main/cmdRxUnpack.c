@@ -170,11 +170,20 @@ void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu)
         if ((ctl & 0x0400) != 0)
         {// ADC的值
             tmpU16 = (U16)(((U16)buf[L+1]<<8) | ((U16)buf[L]<<0)); L += 2; printf("\tadc: %u\r\n", tmpU16); // 10位精度ADC的电压值(0-VDDIO) mv
+        
         }
         if ((ctl & 0x0800) != 0)
         {// GPIO1的值
             tmpU8 = buf[L]; L += 1;
             printf("\t GPIO1  M:%X, N:%X\r\n", (tmpU8>>4)&0x0f, (tmpU8)&0x0f);
+//             假如值为0xMN  则解析为：
+//   M的值:      0=浮空输入,
+//              1=上拉输入,
+//              2=下拉输入,
+//              3=输出0,
+//              4=输出1
+//   N的值:表示IO的当前真实电平值
+            
         }
         break;
     case 0x12: // 设置参数 回复
