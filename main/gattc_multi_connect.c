@@ -52,7 +52,7 @@ const char *GATTC_TAG = "GATTC_MULTIPLE_DEMO";
 #define PROFILE_C_APP_ID 2
 #define INVALID_HANDLE   0
 
-void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu,int *adcValue,uint8_t gpioValue);
+void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu,int *adcValue,uint8_t *gpioValue);
 
 /* Declare static functions */
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
@@ -336,7 +336,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         }
         else
         {
-            Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&a.circles,&a.adc_value,a.gpio_value);
+            Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&a.circles,&a.adc_value,&a.gpio_value);
             ESP_LOGI(GATTC_TAG,"圈数：%.3f",a.circles);
         }
         
@@ -726,7 +726,7 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         }
         else
         {
-        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&b.circles,&b.adc_value,b.gpio_value);
+        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&b.circles,&b.adc_value,&b.gpio_value);
         ESP_LOGI(GATTC_TAG,"圈数：%3f",b.circles);
         }        
 
@@ -1098,7 +1098,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         }
         else
         {
-        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&c.circles,&c.adc_value,c.gpio_value);
+        Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&c.circles,&c.adc_value,&c.gpio_value);
         ESP_LOGI(GATTC_TAG,"圈数：%3f",c.circles);
         } 
 
