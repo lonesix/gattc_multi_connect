@@ -332,12 +332,12 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
         if (p_data->notify.value_len < 3)
         {
-            /* code */
+            a.battery_level = p_data->notify.value[0];
         }
         else
         {
             Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&a.circles,&a.adc_value,&a.gpio_value);
-            ESP_LOGI(GATTC_TAG,"圈数：%.3f",a.circles);
+            ESP_LOGI(GATTC_TAG,"圈数：%.3f,adc:%d,gpio:%d",a.circles,a.adc_value,a.gpio_value);
         }
         
         
@@ -722,12 +722,12 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
         if (p_data->notify.value_len < 3)
         {
-            /* code */
+            b.battery_level = p_data->notify.value[0];
         }
         else
         {
         Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&b.circles,&b.adc_value,&b.gpio_value);
-        ESP_LOGI(GATTC_TAG,"圈数：%3f",b.circles);
+        ESP_LOGI(GATTC_TAG,"圈数：%.3f,adc:%d,gpio:%d",b.circles,b.adc_value,b.gpio_value);
         }        
 
         break;
@@ -1094,12 +1094,12 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
         if (p_data->notify.value_len < 3)
         {
-            /* code */
+            c.battery_level = p_data->notify.value[0];
         }
         else
         {
         Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&c.circles,&c.adc_value,&c.gpio_value);
-        ESP_LOGI(GATTC_TAG,"圈数：%3f",c.circles);
+        ESP_LOGI(GATTC_TAG,"圈数：%.3f,adc:%d,gpio:%d",c.circles,c.adc_value,c.gpio_value);
         } 
 
         break;
