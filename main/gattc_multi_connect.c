@@ -119,7 +119,7 @@ static esp_gattc_descr_elem_t *descr_elem_result_b  = NULL;
 static esp_gattc_char_elem_t  *char_elem_result_c   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result_c  = NULL;
 
-static const char remote_device_name[3][20] = {"NodeB-V3.11","im600-V3.07", "isdm600-V3.07"};
+static const char remote_device_name[3][20] = {"NodeB-V3.11", "isdm600-V3.07","im600-V3.07"};
 
 static esp_ble_scan_params_t ble_scan_params = {
     .scan_type              = BLE_SCAN_TYPE_ACTIVE,
@@ -1045,6 +1045,12 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             gl_profile_tab[PROFILE_C_APP_ID].service_start_handle = p_data->search_res.start_handle;
             gl_profile_tab[PROFILE_C_APP_ID].service_end_handle = p_data->search_res.end_handle;
         }
+        if (p_data->search_res.srvc_id.uuid.len == ESP_UUID_LEN_16 && p_data->search_res.srvc_id.uuid.uuid.uuid16 == Battery_Service) {
+            ESP_LOGI(GATTC_TAG, "UUID16: %x", p_data->search_res.srvc_id.uuid.uuid.uuid16);
+            get_service_c = true;
+            gl_profile_tab[PROFILE_C_APP_ID].service_start_handle = p_data->search_res.start_handle;
+            gl_profile_tab[PROFILE_C_APP_ID].service_end_handle = p_data->search_res.end_handle;
+        }
         break;
     }
     case ESP_GATTC_SEARCH_CMPL_EVT:
@@ -1071,6 +1077,19 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                     ESP_LOGE(GATTC_TAG, "gattc no mem");
                     break;
                 }else{
+                    if (set_device_c ==3)
+                    {
+                    /****************电量特征值****************** */
+                    status = esp_ble_gattc_get_char_by_uuid( gattc_if,
+                                                            p_data->search_cmpl.conn_id,
+                                                            gl_profile_tab[PROFILE_C_APP_ID].service_start_handle,
+                                                            gl_profile_tab[PROFILE_C_APP_ID].service_end_handle,
+                                                            remote_battery_level_uuid,
+                                                            char_elem_result_c,
+                                                            &count);   
+                    }
+                    else
+                    {
                     status = esp_ble_gattc_get_char_by_uuid( gattc_if,
                                                              p_data->search_cmpl.conn_id,
                                                              gl_profile_tab[PROFILE_C_APP_ID].service_start_handle,
@@ -1078,6 +1097,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                              remote_filter_char_uuid,
                                                              char_elem_result_c,
                                                              &count);
+                    }
                     if (status != ESP_GATT_OK){
                         ESP_LOGE(GATTC_TAG, "esp_ble_gattc_get_char_by_uuid error");
                         free(char_elem_result_c);
@@ -1166,6 +1186,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         if (p_data->notify.value_len < 3)
         {
             c.battery_level = p_data->notify.value[0];
+            ESP_LOGI(GATTC_TAG,"电量:%d",c.battery_level);
         }
         else
         {
@@ -1180,7 +1201,9 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             break;
         }
         ESP_LOGI(GATTC_TAG, "write descr success");
-                uint16_t count = 2;
+        if (set_device_c == 0)
+        {
+        uint16_t count = 2;
         esp_gatt_status_t status;
         char_elem_result_c = (esp_gattc_char_elem_t *)malloc(sizeof(esp_gattc_char_elem_t) * count);
         if (!char_elem_result_c){
@@ -1218,12 +1241,14 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                   write_char_data,
                                   ESP_GATT_WRITE_TYPE_NO_RSP,
                                   ESP_GATT_AUTH_REQ_NONE);
-        }
+        
             ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
             /* free char_elem_result */
                 free(char_elem_result_c);
                 char_elem_result_c = NULL;                           
             /****************保持连接特征值****************** */
+        }
+        }
         break;
     case ESP_GATTC_WRITE_CHAR_EVT:
         if (p_data->write.status != ESP_GATT_OK){
@@ -1231,9 +1256,9 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             break;
         }
         ESP_LOGI(GATTC_TAG, "Write char success");
-        if (set_device_c == 2)
+        if (set_device_c == 3)
         {
-            start_scan();
+            // start_scan();
         }
         if (set_device_c == 0)
         {
@@ -1353,6 +1378,12 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             /****************保持连接特征值****************** */
         }
         }
+
+        if (set_device_c == 2)
+        {
+            esp_ble_gattc_search_service(gattc_if, param->cfg_mtu.conn_id, &remote_battery_service_uuid);
+            set_device_c = 3;
+        }
         break;
     case ESP_GATTC_SRVC_CHG_EVT: {
         esp_bd_addr_t bda;
@@ -1366,6 +1397,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             ESP_LOGI(GATTC_TAG, "device c disconnect");
             conn_device_c = false;
             get_service_c = false;
+            set_device_c = 0;
         }
         break;
     default:
