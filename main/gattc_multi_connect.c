@@ -35,7 +35,18 @@
 #include "freertos/FreeRTOS.h"
 #include "uart.h"
 #include  <string.h>
+
+// #include "event_groups.h"
 const char *GATTC_TAG = "GATTC_MULTIPLE_DEMO";
+
+ 
+// 定义事件组句柄
+EventGroupHandle_t xEventGroup;
+ 
+// 定义事件位
+#define EVENT_BIT_READY_ON  (1<<0)
+#define EVENT_BIT_READY_OFF (1<<1)
+
 
 #define CTL 0x0c40//功能订阅标识
 #define UploadFrequency     1//上传频率，#数据主动上报的传输帧率[取值0-250HZ], 0表示0.5HZ
@@ -1183,7 +1194,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
     case ESP_GATTC_NOTIFY_EVT:
         ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, Receive notify value:");
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
-        if (p_data->notify.value_len < 3)
+        if (p_data->notify.value_len == 1 )
         {
             c.battery_level = p_data->notify.value[0];
             ESP_LOGI(GATTC_TAG,"电量:%d",c.battery_level);
@@ -1259,6 +1270,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         if (set_device_c == 3)
         {
             // start_scan();
+            xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
         }
         if (set_device_c == 0)
         {
@@ -1549,6 +1561,22 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
     } while (0);
 }
 
+void JSONTask(void *pvParameters) {
+    //初始化串口
+    uart_init();
+    
+    for (;;) {
+        // if (set_device_a ==3 && set_device_b ==3 && set_device_c==3)
+        // {
+            sendStateJson(a,b,c);
+            vTaskDelay(100/portTICK_PERIOD_MS);
+        // }
+        
+        
+    }
+    vTaskDelete(NULL);
+}
+
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -1558,12 +1586,12 @@ void app_main(void)
     }
     ESP_ERROR_CHECK( ret );
 
-        // 复制字符串到结构体的 name 成员
+    // 复制字符串到结构体的 name 成员
     strcpy(a.name, remote_device_name[0]);
     strcpy(b.name, remote_device_name[1]);
     strcpy(c.name, remote_device_name[2]);
 
-            // 复制字符串到结构体的 device_id 成员
+    // 复制字符串到结构体的 device_id 成员
     strcpy(a.device_id, "a");
     strcpy(b.device_id, "b");
     strcpy(c.device_id, "c");
@@ -1573,6 +1601,13 @@ void app_main(void)
     c.state = Unknow;
 
 
+    // 创建事件组
+    xEventGroup = xEventGroupCreate();
+    if (xEventGroup == NULL) {
+        ESP_LOGE("main","xEventGroup create fail");
+        // 事件组创建失败，进入死循环
+        while (1){}
+    }
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
@@ -1637,5 +1672,22 @@ void app_main(void)
         ESP_LOGE(GATTC_TAG, "set local  MTU failed, error code = %x", ret);
     }
 
-
+    //事件组控制串口发送节点
+    EventBits_t uxBits;
+    uxBits = xEventGroupWaitBits(
+    xEventGroup,    // 事件组句柄
+    EVENT_BIT_READY_ON | EVENT_BIT_READY_OFF, // 等待的事件标志位
+    pdTRUE,         // 退出时清除事件标志位
+    pdFALSE,        // 任意一个事件发生就退出等待
+    portMAX_DELAY    // 无限等待
+    );
+    if (uxBits & EVENT_BIT_READY_ON) {
+    xTaskCreate(JSONTask, "JSONTask", 4*1024, NULL, 5, NULL);
+    }
 }
+    // xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
+    // xEventGroupClearBits
+    // // 延时一段时间后触发另一个事件
+    // vTaskDelay(pdMS_TO_TICKS(1000));
+    // xEventGroupSetBits(xEventGroup, EVENT_BIT_LED_OFF);
+    

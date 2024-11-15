@@ -33,7 +33,7 @@ typedef struct
     volatile bool contact_switch;      //接触开关是否触发
     volatile int adc_value;            //adc值
     volatile uint8_t gpio_value;
-    volatile Device_State state;       //设备开关状态
+    volatile Device_State state;       //设备阀门开关状态
 }Device;
 extern Device a,b,c;
 

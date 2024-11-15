@@ -1,7 +1,7 @@
 #include "uart.h"
 #define UART_NUM UART_NUM_2
-#define UART_GPIO_TX 1
-#define UART_GPIO_RX 1
+#define UART_GPIO_TX 17
+#define UART_GPIO_RX 18
 #define UART2_BUF_SIZE (1024 * 2)
 static char uart2_tx_buf[UART2_BUF_SIZE] = {0};
 void uart_init()
@@ -16,15 +16,15 @@ uart_config_t uart_config = {
     .source_clk = UART_SCLK_APB,
 };
 // Configure UART parameters
-ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
 // Set UART pins(TX: IO4, RX: IO5, RTS: IO18, CTS: IO19)
 ESP_ERROR_CHECK(uart_set_pin(UART_NUM, UART_GPIO_TX, UART_GPIO_RX, -1, -1));
 // Setup UART buffered IO with event queue
-const int uart_buffer_size = uart2_tx_buf;
+const int uart_buffer_size = UART2_BUF_SIZE;
 QueueHandle_t uart_queue;
 // Install UART driver using an event queue here
 ESP_ERROR_CHECK(uart_driver_install(UART_NUM, uart_buffer_size, \
-                                        uart_buffer_size, 10, &uart_queue, 0));
+                                        uart_buffer_size, 10, NULL, 0));
 }
 
 void Uart_Send(uint8_t *buf , uint16_t len)
@@ -114,7 +114,7 @@ void sendStateJson(Device A,Device B,Device C)
  
     // 将 JSON 对象转换为字符串并打印
     char *json_string = cJSON_Print(root);
-    printf("%s\n", json_string);
+    // printf("%s\n", json_string);
     uart2_printf("%s\n", json_string);
     // 释放内存
     cJSON_Delete(root);
