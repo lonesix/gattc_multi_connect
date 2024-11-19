@@ -263,7 +263,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
 
                     if (set_device_a ==3)
                     {
-                        /****************电量特征值****************** */
+                        /****************电量特征值****************** */                
                         status = esp_ble_gattc_get_char_by_uuid( gattc_if,
                                                                 p_data->search_cmpl.conn_id,
                                                                 gl_profile_tab[PROFILE_A_APP_ID].service_start_handle,
@@ -1057,7 +1057,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             gl_profile_tab[PROFILE_C_APP_ID].service_end_handle = p_data->search_res.end_handle;
         }
         if (p_data->search_res.srvc_id.uuid.len == ESP_UUID_LEN_16 && p_data->search_res.srvc_id.uuid.uuid.uuid16 == Battery_Service) {
-            ESP_LOGI(GATTC_TAG, "UUID16: %x", p_data->search_res.srvc_id.uuid.uuid.uuid16);
+            ESP_LOGI(GATTC_TAG, "UUID16: %x!", p_data->search_res.srvc_id.uuid.uuid.uuid16);
             get_service_c = true;
             gl_profile_tab[PROFILE_C_APP_ID].service_start_handle = p_data->search_res.start_handle;
             gl_profile_tab[PROFILE_C_APP_ID].service_end_handle = p_data->search_res.end_handle;
@@ -1088,8 +1088,9 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                     ESP_LOGE(GATTC_TAG, "gattc no mem");
                     break;
                 }else{
-                    if (set_device_c ==3)
+                    if (set_device_c == 3)
                     {
+                        printf("esp_ble_gattc_get_char_by_uuid remote_battery_level_uuid");
                     /****************电量特征值****************** */
                     status = esp_ble_gattc_get_char_by_uuid( gattc_if,
                                                             p_data->search_cmpl.conn_id,
@@ -1099,7 +1100,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                             char_elem_result_c,
                                                             &count);   
                     }
-                    else
+                    else if(set_device_c != 4)
                     {
                     status = esp_ble_gattc_get_char_by_uuid( gattc_if,
                                                              p_data->search_cmpl.conn_id,
@@ -1109,15 +1110,53 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                              char_elem_result_c,
                                                              &count);
                     }
+                    else if (set_device_c == 4)
+                    {
+                        /****************设置工作参数****************** */
+                    status = esp_ble_gattc_get_char_by_uuid( gattc_if,
+                                                        p_data->search_cmpl.conn_id,
+                                                        gl_profile_tab[PROFILE_C_APP_ID].service_start_handle,
+                                                        gl_profile_tab[PROFILE_C_APP_ID].service_end_handle,
+                                                        keep_connect_uuid,
+                                                        char_elem_result_c,
+                                                        &count);
+ 
+                    }
+                    
+
                     if (status != ESP_GATT_OK){
-                        ESP_LOGE(GATTC_TAG, "esp_ble_gattc_get_char_by_uuid error");
+                        ESP_LOGE(GATTC_TAG, "esp_ble_gattc_get_char_by_uuid error!%d",set_device_c);
                         free(char_elem_result_c);
                         char_elem_result_c = NULL;
                         break;
                     }
-
+                    if (set_device_c == 4)
+                    {
+                                    // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
+                        ESP_LOGI(GATTC_TAG,"ESP_GATT_DB_CHARACTERISTIC count:%d",count);
+                        for (size_t i = 0; i < count; i++)
+                        {
+                            ESP_LOGW(GATTC_TAG,"characteristic uuid:0x%x",char_elem_result_c[i].uuid.uuid.uuid16);
+                        }
+                        gl_profile_tab[PROFILE_C_APP_ID].char_handle = char_elem_result_c[0].char_handle;
+                        
+                        uint8_t params[3] ;
+                        params[0] = 0x51;
+                        params[1] = 0xAA ;      //#静止状态加速度阀值
+                        params[2] = 0xBB;     //#静止归零速度(单位cm/s) 0:不归零 255:立即归零
+                        
+                        esp_ble_gattc_write_char( gattc_if,
+                                                    gl_profile_tab[PROFILE_C_APP_ID].conn_id,
+                                                    char_elem_result_c[0].char_handle,
+                                                    sizeof(params),
+                                                    params,
+                                                    ESP_GATT_WRITE_TYPE_NO_RSP,
+                                                    ESP_GATT_AUTH_REQ_NONE);
+                        ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+                    }
+                    
                     /*  Every service have only one char in our 'ESP_GATTS_DEMO' demo, so we used first 'char_elem_result' */
-                    if (count > 0 && (char_elem_result_c[0].properties & ESP_GATT_CHAR_PROP_BIT_NOTIFY)){
+                    if (count > 0 && (char_elem_result_c[0].properties & ESP_GATT_CHAR_PROP_BIT_NOTIFY) && set_device_c != 4){
                         gl_profile_tab[PROFILE_C_APP_ID].char_handle = char_elem_result_c[0].char_handle;
                         esp_ble_gattc_register_for_notify (gattc_if, gl_profile_tab[PROFILE_C_APP_ID].remote_bda, char_elem_result_c[0].char_handle);
                     }
@@ -1244,15 +1283,18 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             gl_profile_tab[PROFILE_C_APP_ID].char_handle = char_elem_result_c[0].char_handle;
             //每次连接模块后，要尽快发送1次保持蓝牙连接指令(即0x29指令)，否则模块会在30秒后自动断开连接，
             //发送数据注意用write no response方式。
-            uint8_t write_char_data[] = {0x29};
-        esp_ble_gattc_write_char( gattc_if,
-                                  gl_profile_tab[PROFILE_C_APP_ID].conn_id,
-                                  gl_profile_tab[PROFILE_C_APP_ID].char_handle,
-                                  sizeof(write_char_data),
-                                  write_char_data,
-                                  ESP_GATT_WRITE_TYPE_NO_RSP,
-                                  ESP_GATT_AUTH_REQ_NONE);
-        
+
+
+                uint8_t write_char_data[] = {0x29};
+
+                esp_ble_gattc_write_char( gattc_if,
+                            gl_profile_tab[PROFILE_C_APP_ID].conn_id,
+                            gl_profile_tab[PROFILE_C_APP_ID].char_handle,
+                            sizeof(write_char_data),
+                            write_char_data,
+                            ESP_GATT_WRITE_TYPE_NO_RSP,
+                            ESP_GATT_AUTH_REQ_NONE);
+
             ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
             /* free char_elem_result */
                 free(char_elem_result_c);
@@ -1266,10 +1308,11 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             ESP_LOGE(GATTC_TAG, "Write char failed, error status = %x", p_data->write.status);
             break;
         }
-        ESP_LOGI(GATTC_TAG, "Write char success");
+        ESP_LOGI(GATTC_TAG, "Write char success%d",set_device_c);
         if (set_device_c == 3)
         {
             // start_scan();
+            
             xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
         }
         if (set_device_c == 0)
@@ -1381,7 +1424,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                         params,
                                         ESP_GATT_WRITE_TYPE_NO_RSP,
                                         ESP_GATT_AUTH_REQ_NONE);
-            ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+            ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char%d",set_device_c); 
             /* free char_elem_result */
                 free(char_elem_result_c);
                 char_elem_result_c = NULL;     
@@ -1561,16 +1604,40 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
     } while (0);
 }
 
+void device_c_qingling()
+{
+    if (conn_device_c && set_device_c == 3)
+    {
+        set_device_c = 4;
+    }
+    if (conn_device_c && set_device_c == 4)
+    {
+        
+        printf("device_c_qingling");
+        esp_ble_gattc_search_service(gl_profile_tab[PROFILE_C_APP_ID].gattc_if,gl_profile_tab[PROFILE_C_APP_ID].conn_id, &remote_filter_service_uuid);
+        
+    }
+    
+}
+
+
 void JSONTask(void *pvParameters) {
     //初始化串口
     uart_init();
-    
+    int i = 0;
     for (;;) {
         // if (set_device_a ==3 && set_device_b ==3 && set_device_c==3)
         // {
             sendStateJson(a,b,c);
             vTaskDelay(100/portTICK_PERIOD_MS);
         // }
+        i++;
+        if (i == 100)
+        {
+            device_c_qingling();
+            i=0;
+        }
+        
         
         
     }
