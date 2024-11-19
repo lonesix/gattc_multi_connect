@@ -1,4 +1,6 @@
 #include "uart.h"
+#include <string.h>
+
 #define UART_NUM UART_NUM_2
 #define UART_GPIO_TX 17
 #define UART_GPIO_RX 18
@@ -78,7 +80,15 @@ void uart2_printf(const char *fmt, ...)
 
 
 Device a,b,c;
-
+// 函数：将浮点数格式化为保留两位小数的字符串
+char* format_number_to_string(float number) {
+    // 创建一个足够大的缓冲区来存储格式化后的字符串
+    char buffer[50];
+    // 使用 snprintf 函数进行格式化，%.2f 表示保留两位小数
+    snprintf(buffer, sizeof(buffer), "%.2f", number);
+    // 返回格式化后的字符串（注意：返回的字符串在静态缓冲区中，不应长时间保存或多次使用）
+    return strdup(buffer); // 使用 strdup 分配新内存并复制字符串
+}
 /// @brief 
 /// @param A 
 /// @param B 
@@ -87,12 +97,16 @@ void sendStateJson(Device A,Device B,Device C)
 {
     // 创建根 JSON 对象（一个数组）
     cJSON *root = cJSON_CreateArray();
- 
+    char *formatted_number;
     // 创建第一个设备对象
     cJSON *device1 = cJSON_CreateObject();
     cJSON_AddStringToObject(device1, "device_id", A.device_id);
     cJSON_AddStringToObject(device1, "name", A.name);
-    cJSON_AddNumberToObject(device1, "circles", A.circles);
+
+    formatted_number = format_number_to_string(A.circles);
+    cJSON_AddStringToObject(device1, "circles",formatted_number);
+    free(formatted_number); // 释放格式化字符串的内存
+
     cJSON_AddNumberToObject(device1, "battery_level", A.battery_level);
     cJSON_AddItemToArray(root, device1);
  
@@ -100,7 +114,11 @@ void sendStateJson(Device A,Device B,Device C)
     cJSON *device2 = cJSON_CreateObject();
     cJSON_AddStringToObject(device2, "device_id", B.device_id);
     cJSON_AddStringToObject(device2, "name", B.name);
-    cJSON_AddNumberToObject(device2, "circles", B.circles);
+
+    formatted_number = format_number_to_string(B.circles);
+    cJSON_AddStringToObject(device2, "circles",formatted_number);
+    free(formatted_number); // 释放格式化字符串的内存
+
     cJSON_AddNumberToObject(device2, "battery_level", B.battery_level);
     cJSON_AddItemToArray(root, device2);
  
@@ -108,7 +126,11 @@ void sendStateJson(Device A,Device B,Device C)
     cJSON *device3 = cJSON_CreateObject();
     cJSON_AddStringToObject(device3, "device_id", C.device_id);
     cJSON_AddStringToObject(device3, "name", C.name);
-    cJSON_AddNumberToObject(device3, "circles", C.circles);
+
+    formatted_number = format_number_to_string(C.circles);
+    cJSON_AddStringToObject(device3, "circles",formatted_number);
+    free(formatted_number); // 释放格式化字符串的内存
+
     cJSON_AddNumberToObject(device3, "battery_level", C.battery_level);
     cJSON_AddItemToArray(root, device3);
  
