@@ -270,7 +270,8 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                                 gl_profile_tab[PROFILE_A_APP_ID].service_end_handle,
                                                                 remote_battery_level_uuid,
                                                                 char_elem_result_a,
-                                                                &count);   
+                                                                &count);  
+                        a.blueTooth_state = true; 
                     }
                     else if(set_device_a != 4)
                     {
@@ -325,7 +326,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                     ESP_GATT_WRITE_TYPE_NO_RSP,
                                                     ESP_GATT_AUTH_REQ_NONE);
                         ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
-                        a.blueTooth_state = true;
+                        
                     }
 
                     // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
@@ -432,6 +433,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         {
             Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&a.circles,&a.adc_value,&a.gpio_value);
             ESP_LOGI(GATTC_TAG,"圈数：%.3f,adc:%d,gpio:%d",a.circles,a.adc_value,a.gpio_value);
+            ESP_LOGI(GATTC_TAG,"蓝牙连接状态：%d,阀门状态%d",a.blueTooth_state,a.state);
         }
         
         
@@ -739,7 +741,8 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                             gl_profile_tab[PROFILE_B_APP_ID].service_end_handle,
                                                             remote_battery_level_uuid,
                                                             char_elem_result_b,
-                                                            &count);   
+                                                            &count); 
+                    b.blueTooth_state = true;                                          
                     }
                     else if(set_device_b != 4)
                     {
@@ -794,7 +797,7 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                     ESP_GATT_WRITE_TYPE_NO_RSP,
                                                     ESP_GATT_AUTH_REQ_NONE);
                         ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
-                        b.blueTooth_state = true;
+                        
                     }
                     // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
                     ESP_LOGI(GATTC_TAG,"ESP_GATT_DB_CHARACTERISTIC count:%d",count);
@@ -1189,7 +1192,8 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                             gl_profile_tab[PROFILE_C_APP_ID].service_end_handle,
                                                             remote_battery_level_uuid,
                                                             char_elem_result_c,
-                                                            &count);   
+                                                            &count); 
+                    c.blueTooth_state = true;
                     }
                     else if(set_device_c != 4)
                     {
@@ -1244,7 +1248,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                     ESP_GATT_WRITE_TYPE_NO_RSP,
                                                     ESP_GATT_AUTH_REQ_NONE);
                         ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
-                        c.blueTooth_state = true;
+                        
                     }
                     
                     /*  Every service have only one char in our 'ESP_GATTS_DEMO' demo, so we used first 'char_elem_result' */
@@ -1747,31 +1751,6 @@ void device_c_qingling()
 }
 
 
-void JSONTask(void *pvParameters) {
-    //初始化串口
-    uart_init();
-    int i = 0;
-    for (;;) {
-        // if (set_device_a ==3 && set_device_b ==3 && set_device_c==3)
-        // {
-            sendStateJson(a,b,c);
-            vTaskDelay(200/portTICK_PERIOD_MS);
-        // }
-        i++;
-        if (i == 100)
-        {
-            // device_a_qingling();
-            // device_b_qingling();
-            // device_c_qingling();
-            i=0;
-        }
-        
-        
-        
-    }
-    vTaskDelete(NULL);
-}
-
 void scan_key(uint8_t num)
 {
     static uint8_t a_old=1,b_old=1,c_old=1;
@@ -1808,13 +1787,14 @@ void scan_key(uint8_t num)
     default:
         break;
     }
-
+    // printf("gpio_value : %d,old:%d,state:%d/r/n",*gpio_value,*old,*state);
     if (gpio_value != NULL)
     {
         if (*gpio_value == 0 && *old ==1)
     {
         /* Close */
         *state =  Close;
+
     }
     if (*gpio_value == 1 && *old ==1)
     {
@@ -1832,11 +1812,11 @@ void scan_key(uint8_t num)
         /* Close */
         *state =  Close;
     }
-    if (*gpio_value == 0 && *old ==0)
-    {
-        /* midprocess */
-        *state =  MidProcess;
-    }
+    // if (*gpio_value == 0 && *old ==0)
+    // {
+    //     /* midprocess */
+    //     *state =  MidProcess;
+    // }
     
     *old = *gpio_value;
     }
@@ -1847,9 +1827,11 @@ void scan_key(uint8_t num)
 
 void updateState()
 {
-    if (a.blueTooth_state)
+    // printf("a.blueTooth_state:%d\r\n",a.blueTooth_state);
+    if (a.blueTooth_state == true)
     {
         //检测按键，上拉
+        // printf("scan_key\r\n");
         scan_key(PROFILE_A_APP_ID);
     }else{
         a.state = Unknow;
@@ -1872,20 +1854,48 @@ void updateState()
     }
 }
 
-void updateStateTask(void *pvParameters) {
-
+void JSONTask(void *pvParameters) {
+    //初始化串口
+    uart_init();
     int i = 0;
     for (;;) {
-        updateState();
-        sendStateJson(a,b,c);
-        vTaskDelay(200/portTICK_PERIOD_MS);
-     
+        // if (set_device_a ==3 && set_device_b ==3 && set_device_c==3)
+        // {
+        // printf("a.blueTooth_state:%d\r\n",a.blueTooth_state);
+            updateState();
+            sendStateJson(a,b,c);
+            vTaskDelay(200/portTICK_PERIOD_MS);
+        // }
+        i++;
+        if (i == 100)
+        {
+            // device_a_qingling();
+            // device_b_qingling();
+            // device_c_qingling();
+            i=0;
+        }
         
         
         
     }
     vTaskDelete(NULL);
 }
+
+
+// void updateStateTask(void *pvParameters) {
+
+//     int i = 0;
+//     for (;;) {
+//         updateState();
+//         sendStateJson(a,b,c);
+//         vTaskDelay(200/portTICK_PERIOD_MS);
+     
+        
+        
+        
+//     }
+//     vTaskDelete(NULL);
+// }
 
 void app_main(void)
 {
