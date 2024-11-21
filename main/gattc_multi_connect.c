@@ -325,6 +325,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                     ESP_GATT_WRITE_TYPE_NO_RSP,
                                                     ESP_GATT_AUTH_REQ_NONE);
                         ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+                        a.blueTooth_state = true;
                     }
 
                     // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
@@ -371,6 +372,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             if (!descr_elem_result_a){
                 ESP_LOGE(GATTC_TAG, "malloc error, gattc no mem");
             }else{
+                
                 ret_status = esp_ble_gattc_get_descr_by_char_handle( gattc_if,
                                                                      gl_profile_tab[PROFILE_A_APP_ID].conn_id,
                                                                      p_data->reg_for_notify.handle,
@@ -643,6 +645,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             conn_device_a = false;
             get_service_a = false;
             set_device_a = 0;
+            a.blueTooth_state = false;
         }
         break;
     default:
@@ -791,6 +794,7 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                     ESP_GATT_WRITE_TYPE_NO_RSP,
                                                     ESP_GATT_AUTH_REQ_NONE);
                         ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+                        b.blueTooth_state = true;
                     }
                     // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
                     ESP_LOGI(GATTC_TAG,"ESP_GATT_DB_CHARACTERISTIC count:%d",count);
@@ -1090,6 +1094,7 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             ESP_LOGI(GATTC_TAG, "device b disconnect");
             conn_device_b = false;
             get_service_b = false;
+            b.blueTooth_state = false;
             set_device_b = 0;
         }
         break;
@@ -1239,6 +1244,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                     ESP_GATT_WRITE_TYPE_NO_RSP,
                                                     ESP_GATT_AUTH_REQ_NONE);
                         ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+                        c.blueTooth_state = true;
                     }
                     
                     /*  Every service have only one char in our 'ESP_GATTS_DEMO' demo, so we used first 'char_elem_result' */
@@ -1538,6 +1544,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             ESP_LOGI(GATTC_TAG, "device c disconnect");
             conn_device_c = false;
             get_service_c = false;
+            c.blueTooth_state = false;
             set_device_c = 0;
         }
         break;
@@ -1797,7 +1804,7 @@ void app_main(void)
         while (1){}
     }
 
-    
+    xTaskCreate(JSONTask, "JSONTask", 4*1024, NULL, 5, NULL);
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
@@ -1872,7 +1879,7 @@ void app_main(void)
     portMAX_DELAY    // 无限等待
     );
     if (uxBits & EVENT_BIT_READY_ON) {
-    xTaskCreate(JSONTask, "JSONTask", 4*1024, NULL, 5, NULL);
+    // xTaskCreate(JSONTask, "JSONTask", 4*1024, NULL, 5, NULL);
     }
 }
     // xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);

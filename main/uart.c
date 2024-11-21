@@ -102,36 +102,39 @@ void sendStateJson(Device A,Device B,Device C)
     cJSON *device1 = cJSON_CreateObject();
     cJSON_AddStringToObject(device1, "device_id", A.device_id);
     cJSON_AddStringToObject(device1, "name", A.name);
-
+    cJSON_AddNumberToObject(device1, "connection_status", A.blueTooth_state);
     formatted_number = format_number_to_string(A.circles);
     cJSON_AddStringToObject(device1, "circles",formatted_number);
     free(formatted_number); // 释放格式化字符串的内存
 
     cJSON_AddNumberToObject(device1, "battery_level", A.battery_level);
+    cJSON_AddNumberToObject(device1, "switch_state", A.state);
     cJSON_AddItemToArray(root, device1);
  
     // 创建第二个设备对象
     cJSON *device2 = cJSON_CreateObject();
     cJSON_AddStringToObject(device2, "device_id", B.device_id);
     cJSON_AddStringToObject(device2, "name", B.name);
-
+    cJSON_AddNumberToObject(device2, "connection_status", B.blueTooth_state);
     formatted_number = format_number_to_string(B.circles);
     cJSON_AddStringToObject(device2, "circles",formatted_number);
     free(formatted_number); // 释放格式化字符串的内存
 
     cJSON_AddNumberToObject(device2, "battery_level", B.battery_level);
+    cJSON_AddNumberToObject(device2, "switch_state", B.state);
     cJSON_AddItemToArray(root, device2);
  
     // 创建第三个设备对象
     cJSON *device3 = cJSON_CreateObject();
     cJSON_AddStringToObject(device3, "device_id", C.device_id);
     cJSON_AddStringToObject(device3, "name", C.name);
-
+    cJSON_AddNumberToObject(device3, "connection_status", C.blueTooth_state);
     formatted_number = format_number_to_string(C.circles);
     cJSON_AddStringToObject(device3, "circles",formatted_number);
     free(formatted_number); // 释放格式化字符串的内存
 
     cJSON_AddNumberToObject(device3, "battery_level", C.battery_level);
+    cJSON_AddNumberToObject(device3, "switch_state", C.state);
     cJSON_AddItemToArray(root, device3);
  
     // 将 JSON 对象转换为字符串并打印
