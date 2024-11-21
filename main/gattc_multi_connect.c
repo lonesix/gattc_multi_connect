@@ -1772,6 +1772,121 @@ void JSONTask(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
+void scan_key(uint8_t num)
+{
+    static uint8_t a_old=1,b_old=1,c_old=1;
+    static bool press_a,press_b,pressc;
+    uint8_t *gpio_value = NULL;
+    uint8_t *old = NULL;
+    Device_State * state = NULL;
+    switch (num)
+    {
+    case PROFILE_A_APP_ID:
+        {   
+            gpio_value = & a.gpio_value;
+            old = & a_old;
+            state = &a.state;
+        }
+    break;
+    case PROFILE_B_APP_ID:
+        {
+            gpio_value = & b.gpio_value;
+            old = & b_old;
+            state = &b.state;
+            
+        }
+    break;
+    case PROFILE_C_APP_ID:
+        {
+            gpio_value = & c.gpio_value;
+            old = & c_old;
+            state = &c.state;
+            
+        }
+    break;
+    
+    default:
+        break;
+    }
+
+    if (gpio_value != NULL)
+    {
+        if (*gpio_value == 0 && *old ==1)
+    {
+        /* Close */
+        *state =  Close;
+    }
+    if (*gpio_value == 1 && *old ==1)
+    {
+        /* unknow/Open */
+        if (*state == Unknow)
+        {
+            
+        }else{
+            *state = Open;
+        }
+        
+    }
+    if (*gpio_value == 0 && *old ==0)
+    {
+        /* Close */
+        *state =  Close;
+    }
+    if (*gpio_value == 0 && *old ==0)
+    {
+        /* midprocess */
+        *state =  MidProcess;
+    }
+    
+    *old = *gpio_value;
+    }
+    
+    
+
+}
+
+void updateState()
+{
+    if (a.blueTooth_state)
+    {
+        //检测按键，上拉
+        scan_key(PROFILE_A_APP_ID);
+    }else{
+        a.state = Unknow;
+    }
+
+    if (b.blueTooth_state)
+    {
+        /* code */
+        scan_key(PROFILE_B_APP_ID);
+    }else{
+        b.state = Unknow;
+    }
+
+    if (c.blueTooth_state)
+    {
+        /* code */
+        scan_key(PROFILE_C_APP_ID);
+    }else{
+        c.state = Unknow;
+    }
+}
+
+void updateStateTask(void *pvParameters) {
+
+    int i = 0;
+    for (;;) {
+        updateState();
+        sendStateJson(a,b,c);
+        vTaskDelay(200/portTICK_PERIOD_MS);
+     
+        
+        
+        
+    }
+    vTaskDelete(NULL);
+}
+
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
