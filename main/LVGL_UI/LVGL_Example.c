@@ -54,6 +54,61 @@ void IRAM_ATTR auto_switch(lv_timer_t * t)
     lv_tabview_set_act(tv, 2, LV_ANIM_ON); 
   }
 }
+
+   static void BootGifTimer(struct _lv_timer_t *t) 
+    {
+    lv_obj_t * obj = t->user_data;
+    lv_gif_t * gifobj = (lv_gif_t *) obj;
+    uint32_t elaps = lv_tick_elaps(gifobj->last_call);
+    if(elaps < gifobj->gif->gce.delay * 10) return;
+    gifobj->last_call = lv_tick_get();
+    int has_next = gd_get_frame(gifobj->gif);
+    if(has_next == 0) {
+        lv_res_t res = lv_event_send(obj, LV_EVENT_READY, NULL);
+        if(res != LV_FS_RES_OK) return;
+    }   
+    gd_render_frame(gifobj->gif, (uint8_t *)gifobj->imgdsc.data);
+    lv_img_cache_invalidate_src(lv_img_get_src(obj));
+    lv_obj_invalidate(obj);
+    }
+
+static bool shake_flag = false;
+static lv_obj_t *gif_anim = NULL;
+lv_obj_t *ui_screen_main = NULL;
+
+void next_frame_task_cb(lv_event_t *event)
+{
+    lv_event_code_t code = lv_event_get_code(event);
+    bool active = (bool) event->param;
+    static bool is_wakeup = false;
+    static bool is_play_finish = false;
+    // static uint8_t normal_cnt = NORMAL_EMOJI;
+
+    switch (code)
+    {
+    case LV_EVENT_READY:
+    {
+        printf("----gif play finsh----\n");
+
+        /* normal loop */
+
+
+        
+
+        break;
+    }
+    case LV_EVENT_VALUE_CHANGED:
+    {
+        /* wake up to emoji */
+        // ((lv_gif_t *)gif_anim)->gif->loop_count = 1;
+        // active == true ? is_wakeup = true : is_wakeup = false;
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void Lvgl_Example1(void){
 
   disp_size = DISP_SMALL;                            
@@ -74,29 +129,44 @@ void Lvgl_Example1(void){
     LV_LOG_WARN("LV_FONT_MONTSERRAT_12 is not enabled for the widgets demo. Using LV_FONT_DEFAULT instead.");
   #endif
   
-  lv_style_init(&style_text_muted);
-  lv_style_set_text_opa(&style_text_muted, LV_OPA_90);
+    LV_IMG_DECLARE(kaiji_gif);
+    lv_obj_t *img;
 
-  lv_style_init(&style_title);
-  lv_style_set_text_font(&style_title, font_large);
+    gif_anim = lv_gif_create(lv_scr_act());
 
-  lv_style_init(&style_icon);
-  lv_style_set_text_color(&style_icon, lv_theme_get_color_primary(NULL));
-  lv_style_set_text_font(&style_icon, font_large);
+        /* add event to gif_anim */
+    lv_obj_add_event_cb(gif_anim, next_frame_task_cb, LV_EVENT_ALL, NULL);
 
-  lv_style_init(&style_bullet);
-  lv_style_set_border_width(&style_bullet, 0);
-  lv_style_set_radius(&style_bullet, LV_RADIUS_CIRCLE);
+    lv_gif_set_src(gif_anim, &kaiji_gif);
+    lv_obj_set_pos(gif_anim, 0, 0);
 
-  tv = lv_tabview_create(lv_scr_act(), LV_DIR_TOP, tab_h);
-
-  lv_obj_set_style_text_font(lv_scr_act(), font_normal, 0);
+    ((lv_gif_t *)gif_anim)->gif->loop_count = 1;
+    // lv_timer_set_cb(((lv_gif_t*)gif_anim)->timer, BootGifTimer);
 
 
-  lv_obj_t * t1 = lv_tabview_add_tab(tv, "Onboard");
+  // lv_style_init(&style_text_muted);
+  // lv_style_set_text_opa(&style_text_muted, LV_OPA_90);
+
+  // lv_style_init(&style_title);
+  // lv_style_set_text_font(&style_title, font_large);
+
+  // lv_style_init(&style_icon);
+  // lv_style_set_text_color(&style_icon, lv_theme_get_color_primary(NULL));
+  // lv_style_set_text_font(&style_icon, font_large);
+
+  // lv_style_init(&style_bullet);
+  // lv_style_set_border_width(&style_bullet, 0);
+  // lv_style_set_radius(&style_bullet, LV_RADIUS_CIRCLE);
+
+  // tv = lv_tabview_create(lv_scr_act(), LV_DIR_TOP, tab_h);
+
+  // lv_obj_set_style_text_font(lv_scr_act(), font_normal, 0);
+
+
+  // lv_obj_t * t1 = lv_tabview_add_tab(tv, "Onboard");
   
   
-  Onboard_create(t1);
+  // Onboard_create(t1);
   
   
 }

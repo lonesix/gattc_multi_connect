@@ -36,6 +36,13 @@
 #include "uart.h"
 #include  <string.h>
 #include "esp_system.h"
+
+//微雪组件
+#include "ST7789.h"
+#include "SD_MMC.h"
+#include "RGB.h"
+#include "Wireless.h"
+#include "LVGL_Example.h"
 // #include "event_groups.h"
 const char *GATTC_TAG = "GATTC_MULTIPLE_DEMO";
 
@@ -1896,7 +1903,20 @@ void JSONTask(void *pvParameters) {
 //     }
 //     vTaskDelete(NULL);
 // }
+void lvgl_task(void *pvParameters)
+{
+    LVGL_Init();   // returns the screen object
 
+/********************* Demo *********************/
+    Lvgl_Example1();
+     while (1) {
+        // raise the task priority of LVGL and/or reduce the handler period can improve the performance
+        vTaskDelay(pdMS_TO_TICKS(10));
+        // The task running lv_timer_handler should have lower priority than that running `lv_tick_inc`
+        lv_timer_handler();
+    }
+
+}
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -1920,7 +1940,15 @@ void app_main(void)
     b.state = Unknow;
     c.state = Unknow;
 
-
+    Flash_Searching();
+    RGB_Init();
+    RGB_Example();
+    // SD_Init();
+    LCD_Init();
+    BK_Light(50);
+    lvgl_task(1);
+    // xTaskCreate(lvgl_task, "lvgl_task", 5*1024, NULL, 5, NULL);
+    vTaskDelay(3000/portTICK_PERIOD_MS);
     // 创建事件组
     xEventGroup = xEventGroupCreate();
     if (xEventGroup == NULL) {
