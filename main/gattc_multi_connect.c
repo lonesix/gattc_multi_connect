@@ -43,6 +43,13 @@
 #include "RGB.h"
 #include "Wireless.h"
 #include "LVGL_Example.h"
+
+//button组件
+#include "iot_button.h"
+#define BOOT_BUTTON_NUM         0
+
+#define BUTTON_ACTIVE_LEVEL     0
+
 // #include "event_groups.h"
 const char *GATTC_TAG = "GATTC_MULTIPLE_DEMO";
 
@@ -137,7 +144,7 @@ static esp_gattc_descr_elem_t *descr_elem_result_b  = NULL;
 static esp_gattc_char_elem_t  *char_elem_result_c   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result_c  = NULL;
 
-static const char remote_device_name[3][20] = {"im600-V3.07","NodeB-V3.11", "isdm600-V3.07"};
+static const char remote_device_name[3][20] = {"im600-V3.11","NodeB-V3.11", "im600-V3.07"};
 
 static esp_ble_scan_params_t ble_scan_params = {
     .scan_type              = BLE_SCAN_TYPE_ACTIVE,
@@ -511,7 +518,9 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         if (set_device_a == 3)
         {
             // start_scan();
-            xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
+            a.blueTooth_state = true; 
+            change_led_color(a.led,Green_led);
+            // xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
         }
         if (set_device_a == 0)
         {
@@ -634,10 +643,58 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
 
         if (set_device_a == 2)
         {
-            esp_ble_gattc_search_service(gattc_if, param->cfg_mtu.conn_id, &remote_battery_service_uuid);
+            // esp_ble_gattc_search_service(gattc_if, param->cfg_mtu.conn_id, &remote_battery_service_uuid);
+
+
+        uint16_t count = 2;
+        esp_gatt_status_t status;
+        char_elem_result_a = (esp_gattc_char_elem_t *)malloc(sizeof(esp_gattc_char_elem_t) * count);
+        if (!char_elem_result_a){
+            ESP_LOGE(GATTC_TAG, "gattc no mem");
+            break;
+        }else{
+            /****************保持连接特征值****************** */
+            /****************设置工作参数****************** */
+            status = esp_ble_gattc_get_char_by_uuid( gattc_if,
+                                                        p_data->search_cmpl.conn_id,
+                                                        gl_profile_tab[PROFILE_A_APP_ID].service_start_handle,
+                                                        gl_profile_tab[PROFILE_A_APP_ID].service_end_handle,
+                                                        keep_connect_uuid,
+                                                        char_elem_result_a,
+                                                        &count);
+            if (status != ESP_GATT_OK){
+                ESP_LOGE(GATTC_TAG, "esp_ble_gattc_get_char_by_uuid error");
+                free(char_elem_result_a);
+                char_elem_result_a = NULL;
+                break;
+            }
+            // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
+            ESP_LOGI(GATTC_TAG,"ESP_GATT_DB_CHARACTERISTIC count:%d",count);
+            for (size_t i = 0; i < count; i++)
+            {
+                ESP_LOGW(GATTC_TAG,"characteristic uuid:0x%x",char_elem_result_a[i].uuid.uuid.uuid16);
+            }
+            gl_profile_tab[PROFILE_A_APP_ID].char_handle = char_elem_result_a[0].char_handle;
+            
+            
+            uint8_t params[2] ;
+            params[0] = 0x27;
+            params[1] = 0x10 ;      //#静止状态加速度阀值
+            
+            esp_ble_gattc_write_char( gattc_if,
+                                        gl_profile_tab[PROFILE_A_APP_ID].conn_id,
+                                        char_elem_result_a[0].char_handle,
+                                        sizeof(params),
+                                        params,
+                                        ESP_GATT_WRITE_TYPE_NO_RSP,
+                                        ESP_GATT_AUTH_REQ_NONE);
+            ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+            /* free char_elem_result */
+                free(char_elem_result_a);
+                char_elem_result_a = NULL;  
             set_device_a = 3;
         }
-        
+        }
     }
         break;
     case ESP_GATTC_SRVC_CHG_EVT: {
@@ -1583,7 +1640,8 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                   param->update_conn_params.conn_int,
                   param->update_conn_params.latency,
                   param->update_conn_params.timeout);
-        esp_restart();
+        // esp_restart();
+        esp_ble_gap_disconnect(param->update_conn_params.bda);
         break;
     case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT: {
         //the unit of the duration is second
@@ -1684,6 +1742,46 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
     }
 }
 
+static void button_event_cb(void *arg, void *data)
+{
+    start_scan();
+}
+
+void button_init(uint32_t button_num)
+{
+    button_config_t btn_cfg = {
+        .type = BUTTON_TYPE_GPIO,
+        .gpio_button_config = {
+            .gpio_num = button_num,
+            .active_level = BUTTON_ACTIVE_LEVEL,
+#if CONFIG_GPIO_BUTTON_SUPPORT_POWER_SAVE
+            .enable_power_save = true,
+#endif
+        },
+    };
+    button_handle_t btn = iot_button_create(&btn_cfg);
+    assert(btn);
+    esp_err_t err = iot_button_register_cb(btn, BUTTON_SINGLE_CLICK, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_PRESS_UP, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_PRESS_REPEAT, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_PRESS_REPEAT_DONE, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_SINGLE_CLICK, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_DOUBLE_CLICK, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_LONG_PRESS_START, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_LONG_PRESS_HOLD, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_LONG_PRESS_UP, button_event_cb, NULL);
+    // err |= iot_button_register_cb(btn, BUTTON_PRESS_END, button_event_cb, NULL);
+
+#if CONFIG_ENTER_LIGHT_SLEEP_MODE_MANUALLY
+    /*!< For enter Power Save */
+    button_power_save_config_t config = {
+        .enter_power_save_cb = button_enter_power_save,
+    };
+    err |= iot_button_register_power_save_cb(&config);
+#endif
+
+    ESP_ERROR_CHECK(err);
+}
 static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
 {
     //ESP_LOGI(GATTC_TAG, "EVT %d, gattc if %d, app_id %d", event, gattc_if, param->reg.app_id);
@@ -1918,7 +2016,7 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
-
+    
     // 复制字符串到结构体的 name 成员
     strcpy(a.name, remote_device_name[0]);
     strcpy(b.name, remote_device_name[1]);
@@ -2030,6 +2128,7 @@ void app_main(void)
     }
 
     }
+    button_init(BOOT_BUTTON_NUM);
 }
     // xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
     // xEventGroupClearBits
