@@ -70,7 +70,8 @@ void LVGL_Init(void)
 {
     ESP_LOGI(TAG_LVGL, "Initialize LVGL library");
     lv_init();
-    
+    // lv_color_t *buf1 = (lv_color_t *)heap_caps_malloc(LVGL_BUF_LEN, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    // lv_color_t *buf2 = (lv_color_t *)heap_caps_malloc(LVGL_BUF_LEN, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     lv_disp_draw_buf_init(&disp_buf, buf1, buf2, EXAMPLE_LCD_H_RES * 20);                              // initialize LVGL draw buffers
 
     ESP_LOGI(TAG_LVGL, "Register display driver to LVGL");
@@ -96,5 +97,6 @@ void LVGL_Init(void)
     esp_timer_handle_t lvgl_tick_timer = NULL;
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, EXAMPLE_LVGL_TICK_PERIOD_MS * 1000));
+    
 
 }

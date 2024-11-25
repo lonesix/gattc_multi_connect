@@ -1,5 +1,5 @@
 #include "LVGL_Example.h"
-
+static SemaphoreHandle_t xGuiSemaphore;
 /**********************
  *      TYPEDEFS
  **********************/
@@ -44,37 +44,47 @@ lv_obj_t * Wireless_Scan;
 
 
 
-void IRAM_ATTR auto_switch(lv_timer_t * t)
-{
-  uint16_t page = lv_tabview_get_tab_act(tv);
 
-  if (page == 0) { 
-    lv_tabview_set_act(tv, 1, LV_ANIM_ON); 
-  } else if (page == 3) {
-    lv_tabview_set_act(tv, 2, LV_ANIM_ON); 
-  }
-}
-
-   static void BootGifTimer(struct _lv_timer_t *t) 
-    {
-    lv_obj_t * obj = t->user_data;
-    lv_gif_t * gifobj = (lv_gif_t *) obj;
-    uint32_t elaps = lv_tick_elaps(gifobj->last_call);
-    if(elaps < gifobj->gif->gce.delay * 10) return;
-    gifobj->last_call = lv_tick_get();
-    int has_next = gd_get_frame(gifobj->gif);
-    if(has_next == 0) {
-        lv_res_t res = lv_event_send(obj, LV_EVENT_READY, NULL);
-        if(res != LV_FS_RES_OK) return;
-    }   
-    gd_render_frame(gifobj->gif, (uint8_t *)gifobj->imgdsc.data);
-    lv_img_cache_invalidate_src(lv_img_get_src(obj));
-    lv_obj_invalidate(obj);
-    }
-
-static bool shake_flag = false;
+lv_obj_t * draw_filled_rectangle(lv_obj_t * parent, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h, lv_color_t color);
+#include "uart.h"
 static lv_obj_t *gif_anim = NULL;
 lv_obj_t *ui_screen_main = NULL;
+// 定义事件组句柄
+extern EventGroupHandle_t xEventGroup;
+ 
+// 定义事件位
+#define EVENT_BIT_READY_ON  (1<<0)
+#define EVENT_BIT_READY_OFF (1<<1)
+//led参数
+#define led_x 20
+
+
+void lvgl_task(void *pvParameters)
+{
+    xGuiSemaphore = xSemaphoreCreateMutex();
+
+    LVGL_Init();   // returns the screen object
+    Lvgl_Example1();
+    
+     while (1) {
+        // raise the task priority of LVGL and/or reduce the handler period can improve the performance
+        
+        if(pdTRUE == xSemaphoreTake(xGuiSemaphore,portMAX_DELAY))    
+        {
+        // The task running lv_timer_handler should have lower priority than that running `lv_tick_inc`
+        lv_timer_handler();
+        xSemaphoreGive(xGuiSemaphore);
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
+}
+void change_led_color(lv_obj_t* led,lv_color_t color)
+{
+  ui_acquire();
+  lv_led_set_color(led, color); // 设置颜色
+  ui_release();
+}
 
 void next_frame_task_cb(lv_event_t *event)
 {
@@ -89,9 +99,12 @@ void next_frame_task_cb(lv_event_t *event)
     case LV_EVENT_READY:
     {
         printf("----gif play finsh----\n");
-
+        // lv_obj_del_delayed(lv_event_get_target(event), 10);
         /* normal loop */
-
+        a.led = draw_filled_rectangle(gif_anim,20,105,15,15,Red_led);
+        b.led = draw_filled_rectangle(gif_anim,20,105*2-5-2,15,15,Red_led);
+        c.led = draw_filled_rectangle(gif_anim,20,105*3-10-4,15,15,Red_led);
+        xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
 
         
 
@@ -107,6 +120,29 @@ void next_frame_task_cb(lv_event_t *event)
     default:
         break;
     }
+}
+
+lv_obj_t * draw_filled_rectangle(lv_obj_t * parent, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h, lv_color_t color) {
+    // 创建一个矩形对象
+    lv_obj_t * rect = lv_led_create(parent); // 如果没有指定父对象，可以传递 NULL，但通常你会希望它有一个父容器
+ 
+    // 设置矩形的位置和大小
+    lv_obj_set_pos(rect, x, y);
+    lv_obj_set_size(rect, w, h);
+ 
+    // 设置矩形的填充颜色和边框颜色（如果需要边框的话）
+    // 注意：在 LVGL 中，如果你只设置了填充颜色而没有设置边框宽度和颜色，那么边框将不会显示
+
+    lv_led_set_brightness(rect, 200); // 例如，设置为中等亮度
+ 
+    // 设置 LED 的颜色（使用十六进制颜色值）
+    lv_led_set_color(rect, color); // 设置为绿色
+    return rect;
+
+    // lv_obj_set_style_border_color(rect, LV_STATE_DEFAULT, lv_color_hex(0xFF0000)); // 设置边框颜色
+ 
+    // 刷新以显示矩形（通常，LVGL 的事件循环会自动处理刷新）
+    // lv_obj_refresh(rect); // 在某些情况下可能需要手动刷新，但通常不需要
 }
 
 void Lvgl_Example1(void){
@@ -130,8 +166,8 @@ void Lvgl_Example1(void){
   #endif
   
     LV_IMG_DECLARE(kaiji_gif);
-    lv_obj_t *img;
-
+    // lv_obj_t *img;
+    
     gif_anim = lv_gif_create(lv_scr_act());
 
         /* add event to gif_anim */
@@ -139,34 +175,16 @@ void Lvgl_Example1(void){
 
     lv_gif_set_src(gif_anim, &kaiji_gif);
     lv_obj_set_pos(gif_anim, 0, 0);
-
+    vTaskDelay(pdMS_TO_TICKS(10));
+    if (gif_anim == NULL) {
+    // 处理错误，例如打印错误消息或退出程序
+    printf( "gif_anim is NULL\n");
+    
+    }
     ((lv_gif_t *)gif_anim)->gif->loop_count = 1;
-    // lv_timer_set_cb(((lv_gif_t*)gif_anim)->timer, BootGifTimer);
 
 
-  // lv_style_init(&style_text_muted);
-  // lv_style_set_text_opa(&style_text_muted, LV_OPA_90);
 
-  // lv_style_init(&style_title);
-  // lv_style_set_text_font(&style_title, font_large);
-
-  // lv_style_init(&style_icon);
-  // lv_style_set_text_color(&style_icon, lv_theme_get_color_primary(NULL));
-  // lv_style_set_text_font(&style_icon, font_large);
-
-  // lv_style_init(&style_bullet);
-  // lv_style_set_border_width(&style_bullet, 0);
-  // lv_style_set_radius(&style_bullet, LV_RADIUS_CIRCLE);
-
-  // tv = lv_tabview_create(lv_scr_act(), LV_DIR_TOP, tab_h);
-
-  // lv_obj_set_style_text_font(lv_scr_act(), font_normal, 0);
-
-
-  // lv_obj_t * t1 = lv_tabview_add_tab(tv, "Onboard");
-  
-  
-  // Onboard_create(t1);
   
   
 }
@@ -308,6 +326,21 @@ void example1_increase_lvgl_tick(lv_timer_t * t)
 static void ta_event_cb(lv_event_t * e)
 {
 }
+
+void ui_acquire(void)
+{
+    
+        xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
+    
+}
+
+void ui_release(void)
+{
+
+        xSemaphoreGive(xGuiSemaphore);
+    
+}
+
 
 
 

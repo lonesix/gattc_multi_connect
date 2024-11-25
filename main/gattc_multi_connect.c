@@ -279,6 +279,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                                 char_elem_result_a,
                                                                 &count);  
                         a.blueTooth_state = true; 
+                        change_led_color(a.led,Green_led);
                     }
                     else if(set_device_a != 4)
                     {
@@ -655,6 +656,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             get_service_a = false;
             set_device_a = 0;
             a.blueTooth_state = false;
+            change_led_color(a.led,Red_led);
         }
         break;
     default:
@@ -749,7 +751,8 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                             remote_battery_level_uuid,
                                                             char_elem_result_b,
                                                             &count); 
-                    b.blueTooth_state = true;                                          
+                    b.blueTooth_state = true;   
+                    change_led_color(b.led,Green_led);                                       
                     }
                     else if(set_device_b != 4)
                     {
@@ -1106,6 +1109,7 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             get_service_b = false;
             b.blueTooth_state = false;
             set_device_b = 0;
+            change_led_color(b.led,Red_led);
         }
         break;
     default:
@@ -1201,6 +1205,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                                                             char_elem_result_c,
                                                             &count); 
                     c.blueTooth_state = true;
+                    change_led_color(c.led,Green_led);
                     }
                     else if(set_device_c != 4)
                     {
@@ -1557,6 +1562,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
             get_service_c = false;
             c.blueTooth_state = false;
             set_device_c = 0;
+            change_led_color(c.led,Red_led);
         }
         break;
     default:
@@ -1903,20 +1909,7 @@ void JSONTask(void *pvParameters) {
 //     }
 //     vTaskDelete(NULL);
 // }
-void lvgl_task(void *pvParameters)
-{
-    LVGL_Init();   // returns the screen object
 
-/********************* Demo *********************/
-    Lvgl_Example1();
-     while (1) {
-        // raise the task priority of LVGL and/or reduce the handler period can improve the performance
-        vTaskDelay(pdMS_TO_TICKS(10));
-        // The task running lv_timer_handler should have lower priority than that running `lv_tick_inc`
-        lv_timer_handler();
-    }
-
-}
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -1946,18 +1939,32 @@ void app_main(void)
     // SD_Init();
     LCD_Init();
     BK_Light(50);
-    lvgl_task(1);
-    // xTaskCreate(lvgl_task, "lvgl_task", 5*1024, NULL, 5, NULL);
-    vTaskDelay(3000/portTICK_PERIOD_MS);
+    // lvgl_task(1);
     // 创建事件组
     xEventGroup = xEventGroupCreate();
+    // lvgl_task(1);
+    xTaskCreate(lvgl_task, "lvgl_task", 6*1024, NULL, 6, NULL);
+    // vTaskDelay(3000/portTICK_PERIOD_MS);
+    // 创建事件组
+    
     if (xEventGroup == NULL) {
         ESP_LOGE("main","xEventGroup create fail");
         // 事件组创建失败，进入死循环
         while (1){}
     }
-
+        EventBits_t uxBits;
+    uxBits = xEventGroupWaitBits(
+    xEventGroup,    // 事件组句柄
+    EVENT_BIT_READY_ON | EVENT_BIT_READY_OFF, // 等待的事件标志位
+    pdTRUE,         // 退出时清除事件标志位
+    pdFALSE,        // 任意一个事件发生就退出等待
+    portMAX_DELAY    // 无限等待
+    );
+    if (uxBits & EVENT_BIT_READY_ON) {
+    // xTaskCreate(JSONTask, "JSONTask", 4*1024, NULL, 5, NULL);
+    
     xTaskCreate(JSONTask, "JSONTask", 4*1024, NULL, 5, NULL);
+    
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
@@ -2022,17 +2029,6 @@ void app_main(void)
         ESP_LOGE(GATTC_TAG, "set local  MTU failed, error code = %x", ret);
     }
 
-    //事件组控制串口发送节点
-    EventBits_t uxBits;
-    uxBits = xEventGroupWaitBits(
-    xEventGroup,    // 事件组句柄
-    EVENT_BIT_READY_ON | EVENT_BIT_READY_OFF, // 等待的事件标志位
-    pdTRUE,         // 退出时清除事件标志位
-    pdFALSE,        // 任意一个事件发生就退出等待
-    portMAX_DELAY    // 无限等待
-    );
-    if (uxBits & EVENT_BIT_READY_ON) {
-    // xTaskCreate(JSONTask, "JSONTask", 4*1024, NULL, 5, NULL);
     }
 }
     // xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
