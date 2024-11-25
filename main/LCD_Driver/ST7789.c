@@ -54,12 +54,8 @@ void LCD_Init(void)
 
     // user can flush pre-defined pattern to the screen before we turn on the screen or backlight
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
-    // uint16_t buffer[10];
-    // for (size_t i = 0; i < 10; i++)
-    // {
-    //     buffer[i] = 0x0000;
-    // }
-    // uint16_t a = 4659;
+    
+    
     // esp_lcd_panel_draw_bitmap(panel_handle, 50,50, 51, 51 ,&a);
    
     
@@ -70,8 +66,8 @@ void LCD_Init(void)
     ESP_LOGI(TAG_LCD, "Turn on LCD backlight");
     // gpio_set_level(EXAMPLE_PIN_NUM_BK_LIGHT, EXAMPLE_LCD_BK_LIGHT_ON_LEVEL);
     
-    BK_Init();                                                                                          // Initialize the backlight
-    BK_Light(75);
+                                                                                             // Initialize the backlight
+    // BK_Light(0);
 
 }
 

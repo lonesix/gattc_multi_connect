@@ -1938,7 +1938,7 @@ void app_main(void)
     RGB_Example();
     // SD_Init();
     LCD_Init();
-    BK_Light(50);
+    
     // lvgl_task(1);
     // 创建事件组
     xEventGroup = xEventGroupCreate();

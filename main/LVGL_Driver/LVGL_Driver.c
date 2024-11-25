@@ -97,6 +97,14 @@ void LVGL_Init(void)
     esp_timer_handle_t lvgl_tick_timer = NULL;
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, EXAMPLE_LVGL_TICK_PERIOD_MS * 1000));
-    
-
+    uint16_t buffer[172];
+    for (size_t i = 0; i < 172; i++)
+    {
+        buffer[i] = 0x0000;
+    }
+    for (size_t y = 0; y < 320; y++)
+    {
+        esp_lcd_panel_draw_bitmap(panel_handle, 0+Offset_X,y+Offset_Y, 172+Offset_X,y+Offset_Y+1 ,buffer);
+    }
+    BK_Init(); 
 }

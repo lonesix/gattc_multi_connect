@@ -64,6 +64,7 @@ void lvgl_task(void *pvParameters)
     xGuiSemaphore = xSemaphoreCreateMutex();
 
     LVGL_Init();   // returns the screen object
+    BK_Light(50);
     Lvgl_Example1();
     
      while (1) {
@@ -167,7 +168,7 @@ void Lvgl_Example1(void){
   
     LV_IMG_DECLARE(kaiji_gif);
     // lv_obj_t *img;
-    
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
     gif_anim = lv_gif_create(lv_scr_act());
 
         /* add event to gif_anim */
