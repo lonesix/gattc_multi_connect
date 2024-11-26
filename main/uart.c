@@ -170,6 +170,82 @@ int getRemainingCapacity(float voltage) {
 
     return 0; // 如果电压低于任何已知值，则返回0%
 }
+typedef  uint16_t u16;
+#define FILTER9_N 51
+
+
+u16 filter_a(u16 value ) 
+{
+ static u16 i = 0,Value = 0;
+ 
+ int new_value;
+ if (Value == 0)
+ {
+    Value = value;
+    return  Value;
+ }
+ new_value = value;			
+ if(Value != new_value) 
+	{
+   i++;
+   if(i > FILTER9_N) 
+		{
+     i = 0;
+     Value = new_value;
+   }
+ }
+ else   i = 0;
+ return Value;
+}
+
+u16 filter_b(u16 value ) 
+{
+ static u16 i = 0,Value = 0;
+ 
+ int new_value;
+ if (Value == 0)
+ {
+    Value = value;
+    return  Value;
+ }
+ new_value = value;			
+ if(Value != new_value) 
+	{
+   i++;
+   if(i > FILTER9_N) 
+		{
+     i = 0;
+     Value = new_value;
+   }
+ }
+ else   i = 0;
+ return Value;
+}
+
+u16 filter_c(u16 value ) 
+{
+ static u16 i = 0,Value = 0;
+ 
+ int new_value;
+ if (Value == 0)
+ {
+    Value = value;
+    return  Value;
+ }
+ new_value = value;			
+ if(Value != new_value) 
+	{
+   i++;
+   if(i > FILTER9_N) 
+		{
+     i = 0;
+     Value = new_value;
+   }
+ }
+ else   i = 0;
+ return Value;
+}
+
 /// @brief 
 /// @param A 
 /// @param B 
@@ -187,7 +263,7 @@ void sendStateJson(Device A,Device B,Device C)
     formatted_number = format_number_to_string(A.circles);
     cJSON_AddStringToObject(device1, "circles",formatted_number);
     free(formatted_number); // 释放格式化字符串的内存
-    A.battery_level = getRemainingCapacity((float) A.adc_value/1000);
+    A.battery_level = getRemainingCapacity((float) filter_a(A.adc_value)/1000);
     cJSON_AddNumberToObject(device1, "battery_level", A.battery_level);
     cJSON_AddNumberToObject(device1, "switch_state", A.state);
     cJSON_AddItemToArray(root, device1);
@@ -200,7 +276,7 @@ void sendStateJson(Device A,Device B,Device C)
     formatted_number = format_number_to_string(B.circles);
     cJSON_AddStringToObject(device2, "circles",formatted_number);
     free(formatted_number); // 释放格式化字符串的内存
-    B.battery_level = getRemainingCapacity((float) B.adc_value/1000);
+    B.battery_level = getRemainingCapacity((float) filter_b(B.adc_value)/1000);
     cJSON_AddNumberToObject(device2, "battery_level", B.battery_level);
     cJSON_AddNumberToObject(device2, "switch_state", B.state);
     cJSON_AddItemToArray(root, device2);
@@ -213,7 +289,7 @@ void sendStateJson(Device A,Device B,Device C)
     formatted_number = format_number_to_string(C.circles);
     cJSON_AddStringToObject(device3, "circles",formatted_number);
     free(formatted_number); // 释放格式化字符串的内存
-    C.battery_level = getRemainingCapacity((float) C.adc_value/1000);
+    C.battery_level = getRemainingCapacity((float) filter_c(C.adc_value)/1000);
     cJSON_AddNumberToObject(device3, "battery_level", C.battery_level);
     cJSON_AddNumberToObject(device3, "switch_state", C.state);
     cJSON_AddItemToArray(root, device3);
