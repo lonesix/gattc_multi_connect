@@ -960,6 +960,7 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         {
         Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&b.circles,&b.adc_value,&b.gpio_value);
         ESP_LOGI(GATTC_TAG,"圈数：%.3f,adc:%d,gpio:%d",b.circles,b.adc_value,b.gpio_value);
+        ESP_LOGI(GATTC_TAG,"蓝牙连接状态：%d,阀门状态%d",b.blueTooth_state,b.state);
         }        
 
         break;
@@ -1456,6 +1457,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         {
         Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&c.circles,&c.adc_value,&c.gpio_value);
         ESP_LOGI(GATTC_TAG,"圈数：%.3f,adc:%d,gpio:%d",c.circles,c.adc_value,c.gpio_value);
+        ESP_LOGI(GATTC_TAG,"蓝牙连接状态：%d,阀门状态%d",c.blueTooth_state,c.state);
         } 
 
         break;
