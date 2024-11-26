@@ -1302,7 +1302,7 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
                 }else{
                     if (set_device_c == 3)
                     {
-                        printf("esp_ble_gattc_get_char_by_uuid remote_battery_level_uuid");
+                        // printf("esp_ble_gattc_get_char_by_uuid remote_battery_level_uuid");
                     /****************电量特征值****************** */
                     status = esp_ble_gattc_get_char_by_uuid( gattc_if,
                                                             p_data->search_cmpl.conn_id,
@@ -1922,7 +1922,7 @@ void device_a_qingling()
     if (conn_device_a && set_device_a == 4)
     {
         
-        printf("device_c_qingling");
+        // printf("device_c_qingling");
         esp_ble_gattc_search_service(gl_profile_tab[PROFILE_A_APP_ID].gattc_if,gl_profile_tab[PROFILE_A_APP_ID].conn_id, &remote_filter_service_uuid);
         
     }
@@ -1938,7 +1938,7 @@ void device_b_qingling()
     if (conn_device_b && set_device_b == 4)
     {
         
-        printf("device_c_qingling");
+        // printf("device_c_qingling");
         esp_ble_gattc_search_service(gl_profile_tab[PROFILE_B_APP_ID].gattc_if,gl_profile_tab[PROFILE_B_APP_ID].conn_id, &remote_filter_service_uuid);
         
     }
@@ -1954,7 +1954,7 @@ void device_c_qingling()
     if (conn_device_c && set_device_c == 4)
     {
         
-        printf("device_c_qingling");
+        // printf("device_c_qingling");
         esp_ble_gattc_search_service(gl_profile_tab[PROFILE_C_APP_ID].gattc_if,gl_profile_tab[PROFILE_C_APP_ID].conn_id, &remote_filter_service_uuid);
         
     }
@@ -2065,50 +2065,7 @@ void scan_key(uint8_t num)
         break;
     }
 
-    if (gpio_value != NULL)
-    {
-        if (*gpio_value == 0 && *old ==1 && *state != Close)
-    {
-        /* Close */
-        if ( *state != Unknow)
-        {
-            *state =  Close;
-            device_qingling(num);
-        }
-        
-   
-    }
-    if (*gpio_value == 1 && *old ==2)
-    {
-        /* unknow/Open */
-        *state = Unknow;
-        // if (*state == Unknow)
-        // {
-            
-        // }else{
-        //     *state = Open;
-        // }
-        
-    }
-
-    if (*gpio_value == 1 && *old ==1 && *state == Unknow)
-    {
-        
-        
-    }
-
-    if (*gpio_value == 1 && *old ==1 && *state == Close)
-    {
-        *state = Open;
-        
-    }
-
-    if (*gpio_value == 0 && *old ==0 && *state != Close && *state != Unknow)
-    {
-        /* Close */
-        *state =  Close;
-        device_qingling(num); 
-    }
+    
     // if (*gpio_value == 0 && *old ==0)
     // {
     //     /* midprocess */
@@ -2116,7 +2073,7 @@ void scan_key(uint8_t num)
     // }
     
     *old = *gpio_value;
-    }
+    
     
     
 

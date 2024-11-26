@@ -220,8 +220,8 @@ void sendStateJson(Device A,Device B,Device C)
  
     // 将 JSON 对象转换为字符串并打印
     char *json_string = cJSON_Print(root);
-    // printf("%s\n", json_string);
-    uart2_printf("%s\n", json_string);
+    printf("%s\n", json_string);
+    // uart2_printf("%s\n", json_string);
     // 释放内存
     cJSON_Delete(root);
     free(json_string);
