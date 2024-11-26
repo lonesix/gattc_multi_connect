@@ -170,7 +170,7 @@ void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu,int *adc
         if ((ctl & 0x0400) != 0)
         {// ADC的值
             tmpU16 = (U16)(((U16)buf[L+1]<<8) | ((U16)buf[L]<<0)); L += 2; printf("\tadc: %u\r\n", tmpU16); // 10位精度ADC的电压值(0-VDDIO) mv
-            *adcValue = tmpU16;
+            *adcValue = tmpU16*3/2;//mv
         }
         if ((ctl & 0x0800) != 0)
         {// GPIO1的值

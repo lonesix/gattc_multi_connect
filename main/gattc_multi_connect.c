@@ -144,7 +144,7 @@ static esp_gattc_descr_elem_t *descr_elem_result_b  = NULL;
 static esp_gattc_char_elem_t  *char_elem_result_c   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result_c  = NULL;
 
-static const char remote_device_name[3][20] = {"im600-V3.11","NodeB-V3.11", "im600-V3.07"};
+static const char remote_device_name[3][20] = {"NodeB-V3.11","im600-V3.11", "im600-V3.07"};
 
 static esp_ble_scan_params_t ble_scan_params = {
     .scan_type              = BLE_SCAN_TYPE_ACTIVE,
@@ -433,8 +433,8 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         {
             if (p_data->notify.value[0] != 0x29 && p_data->notify.value[0] != 0x12 && p_data->notify.value[0] != 0x51)
             {
-                a.battery_level = p_data->notify.value[0];
-                ESP_LOGI(GATTC_TAG,"电量:%d",a.battery_level);
+                // a.battery_level = p_data->notify.value[0];
+                // ESP_LOGI(GATTC_TAG,"电量:%d",a.battery_level);
             }else
             {
                 
@@ -953,8 +953,8 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
         if (p_data->notify.value_len < 3)
         {
-            b.battery_level = p_data->notify.value[0];
-            ESP_LOGI(GATTC_TAG,"电量:%d",b.battery_level);
+            // b.battery_level = p_data->notify.value[0];
+            // ESP_LOGI(GATTC_TAG,"电量:%d",b.battery_level);
         }
         else
         {
@@ -1148,8 +1148,57 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         }
         if (set_device_b == 2)
         {
-            esp_ble_gattc_search_service(gattc_if, param->cfg_mtu.conn_id, &remote_battery_service_uuid);
+            // esp_ble_gattc_search_service(gattc_if, param->cfg_mtu.conn_id, &remote_battery_service_uuid);
+
+
+        uint16_t count = 2;
+        esp_gatt_status_t status;
+        char_elem_result_b = (esp_gattc_char_elem_t *)malloc(sizeof(esp_gattc_char_elem_t) * count);
+        if (!char_elem_result_b){
+            ESP_LOGE(GATTC_TAG, "gattc no mem");
+            break;
+        }else{
+            /****************保持连接特征值****************** */
+            /****************设置工作参数****************** */
+            status = esp_ble_gattc_get_char_by_uuid( gattc_if,
+                                                        p_data->search_cmpl.conn_id,
+                                                        gl_profile_tab[PROFILE_B_APP_ID].service_start_handle,
+                                                        gl_profile_tab[PROFILE_B_APP_ID].service_end_handle,
+                                                        keep_connect_uuid,
+                                                        char_elem_result_b,
+                                                        &count);
+            if (status != ESP_GATT_OK){
+                ESP_LOGE(GATTC_TAG, "esp_ble_gattc_get_char_by_uuid error");
+                free(char_elem_result_b);
+                char_elem_result_b = NULL;
+                break;
+            }
+            // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
+            ESP_LOGI(GATTC_TAG,"ESP_GATT_DB_CHARACTERISTIC count:%d",count);
+            for (size_t i = 0; i < count; i++)
+            {
+                ESP_LOGW(GATTC_TAG,"characteristic uuid:0x%x",char_elem_result_b[i].uuid.uuid.uuid16);
+            }
+            gl_profile_tab[PROFILE_B_APP_ID].char_handle = char_elem_result_b[0].char_handle;
+            
+            
+            uint8_t params[2] ;
+            params[0] = 0x27;
+            params[1] = 0x10 ;      //#静止状态加速度阀值
+            
+            esp_ble_gattc_write_char( gattc_if,
+                                        gl_profile_tab[PROFILE_B_APP_ID].conn_id,
+                                        char_elem_result_b[0].char_handle,
+                                        sizeof(params),
+                                        params,
+                                        ESP_GATT_WRITE_TYPE_NO_RSP,
+                                        ESP_GATT_AUTH_REQ_NONE);
+            ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+            /* free char_elem_result */
+                free(char_elem_result_b);
+                char_elem_result_b = NULL;  
             set_device_b = 3;
+        }
         }
         break;
     case ESP_GATTC_SRVC_CHG_EVT: {
@@ -1400,8 +1449,8 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
         if (p_data->notify.value_len == 1 )
         {
-            c.battery_level = p_data->notify.value[0];
-            ESP_LOGI(GATTC_TAG,"电量:%d",c.battery_level);
+            // c.battery_level = p_data->notify.value[0];
+            // ESP_LOGI(GATTC_TAG,"电量:%d",c.battery_level);
         }
         else
         {
@@ -1600,9 +1649,58 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         }
 
         if (set_device_c == 2)
-        {
-            esp_ble_gattc_search_service(gattc_if, param->cfg_mtu.conn_id, &remote_battery_service_uuid);
+                {
+            // esp_ble_gattc_search_service(gattc_if, param->cfg_mtu.conn_id, &remote_battery_service_uuid);
+
+
+        uint16_t count = 2;
+        esp_gatt_status_t status;
+        char_elem_result_c = (esp_gattc_char_elem_t *)malloc(sizeof(esp_gattc_char_elem_t) * count);
+        if (!char_elem_result_c){
+            ESP_LOGE(GATTC_TAG, "gattc no mem");
+            break;
+        }else{
+            /****************保持连接特征值****************** */
+            /****************设置工作参数****************** */
+            status = esp_ble_gattc_get_char_by_uuid( gattc_if,
+                                                        p_data->search_cmpl.conn_id,
+                                                        gl_profile_tab[PROFILE_C_APP_ID].service_start_handle,
+                                                        gl_profile_tab[PROFILE_C_APP_ID].service_end_handle,
+                                                        keep_connect_uuid,
+                                                        char_elem_result_c,
+                                                        &count);
+            if (status != ESP_GATT_OK){
+                ESP_LOGE(GATTC_TAG, "esp_ble_gattc_get_char_by_uuid error");
+                free(char_elem_result_c);
+                char_elem_result_c = NULL;
+                break;
+            }
+            // esp_ble_gattc_write_char_req_t *write_req = (esp_ble_gattc_write_char_req_t *)malloc(sizeof(esp_ble_gattc_write_char_req_t) + 1);
+            ESP_LOGI(GATTC_TAG,"ESP_GATT_DB_CHARACTERISTIC count:%d",count);
+            for (size_t i = 0; i < count; i++)
+            {
+                ESP_LOGW(GATTC_TAG,"characteristic uuid:0x%x",char_elem_result_c[i].uuid.uuid.uuid16);
+            }
+            gl_profile_tab[PROFILE_C_APP_ID].char_handle = char_elem_result_c[0].char_handle;
+            
+            
+            uint8_t params[2] ;
+            params[0] = 0x27;
+            params[1] = 0x10 ;      //#静止状态加速度阀值
+            
+            esp_ble_gattc_write_char( gattc_if,
+                                        gl_profile_tab[PROFILE_C_APP_ID].conn_id,
+                                        char_elem_result_c[0].char_handle,
+                                        sizeof(params),
+                                        params,
+                                        ESP_GATT_WRITE_TYPE_NO_RSP,
+                                        ESP_GATT_AUTH_REQ_NONE);
+            ESP_LOGW(GATTC_TAG,"esp_ble_gattc_write_char"); 
+            /* free char_elem_result */
+                free(char_elem_result_c);
+                char_elem_result_c = NULL;  
             set_device_c = 3;
+        }
         }
         break;
     case ESP_GATTC_SRVC_CHG_EVT: {
@@ -1861,10 +1959,35 @@ void device_c_qingling()
     
 }
 
+void device_qingling(uint8_t num)
+{
+        switch (num)
+        {
+        case PROFILE_A_APP_ID:
+            {   
+                device_a_qingling();
+            }
+        break;
+        case PROFILE_B_APP_ID:
+            {
+                device_b_qingling();
+            }
+        break;
+        case PROFILE_C_APP_ID:
+            {
+                device_c_qingling();
+            }
+        break;
+        
+        default:
+            break;
+        }
+
+}
 
 void scan_key(uint8_t num)
 {
-    static uint8_t a_old=1,b_old=1,c_old=1;
+    static uint8_t a_old=2,b_old=2,c_old=2;
     static bool press_a,press_b,pressc;
     uint8_t *gpio_value = NULL;
     uint8_t *old = NULL;
@@ -1899,29 +2022,90 @@ void scan_key(uint8_t num)
         break;
     }
     // printf("gpio_value : %d,old:%d,state:%d/r/n",*gpio_value,*old,*state);
+
+    switch (*state)
+    {
+    case Unknow:
+        {
+            if (*gpio_value == 0 && *old ==1 )
+            {
+                *state =  Close;
+                device_qingling(num);
+            }else if (*gpio_value == 0 && *old ==0)
+            {
+                *state =  Close;
+                device_qingling(num);
+            }    
+        }
+        break;
+    case Close:
+        {
+            if ((*gpio_value == 1 && *old ==0) || (*gpio_value == 1 && *old ==1))
+            {
+                *state =  Open;
+            }
+            
+        }
+        break;
+    case MidProcess:
+        /* code */
+        break;
+    case Open:
+        {
+            if ((*gpio_value == 0 && *old ==1) || (*gpio_value == 0 && *old ==0))
+            {
+                *state =  Close;
+            }
+            
+        }
+        break;                    
+    default:
+        break;
+    }
+
     if (gpio_value != NULL)
     {
-        if (*gpio_value == 0 && *old ==1)
+        if (*gpio_value == 0 && *old ==1 && *state != Close)
     {
         /* Close */
-        *state =  Close;
-
-    }
-    if (*gpio_value == 1 && *old ==1)
-    {
-        /* unknow/Open */
-        if (*state == Unknow)
+        if ( *state != Unknow)
         {
-            
-        }else{
-            *state = Open;
+            *state =  Close;
+            device_qingling(num);
         }
         
+   
     }
-    if (*gpio_value == 0 && *old ==0)
+    if (*gpio_value == 1 && *old ==2)
+    {
+        /* unknow/Open */
+        *state = Unknow;
+        // if (*state == Unknow)
+        // {
+            
+        // }else{
+        //     *state = Open;
+        // }
+        
+    }
+
+    if (*gpio_value == 1 && *old ==1 && *state == Unknow)
+    {
+        
+        
+    }
+
+    if (*gpio_value == 1 && *old ==1 && *state == Close)
+    {
+        *state = Open;
+        
+    }
+
+    if (*gpio_value == 0 && *old ==0 && *state != Close && *state != Unknow)
     {
         /* Close */
         *state =  Close;
+        device_qingling(num); 
     }
     // if (*gpio_value == 0 && *old ==0)
     // {

@@ -106,5 +106,6 @@ void LVGL_Init(void)
     {
         esp_lcd_panel_draw_bitmap(panel_handle, 0+Offset_X,y+Offset_Y, 172+Offset_X,y+Offset_Y+1 ,buffer);
     }
+    vTaskDelay(100/portTICK_PERIOD_MS);
     BK_Init(); 
 }
