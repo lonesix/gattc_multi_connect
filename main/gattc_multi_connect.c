@@ -2045,6 +2045,7 @@ void scan_key(uint8_t num)
             if ((*gpio_value == 1 && *old ==0) || (*gpio_value == 1 && *old ==1))
             {
                 *state =  Open;
+                
             }
             
         }
@@ -2057,6 +2058,7 @@ void scan_key(uint8_t num)
             if ((*gpio_value == 0 && *old ==1) || (*gpio_value == 0 && *old ==0))
             {
                 *state =  Close;
+                device_qingling(num);
             }
             
         }
