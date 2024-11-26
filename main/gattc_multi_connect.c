@@ -1026,8 +1026,8 @@ static void gattc_profile_b_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         }
         if (set_device_b == 3)
         {
-            // start_scan();
-            xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
+            b.blueTooth_state = true; 
+            change_led_color(b.led,Green_led);
         }
         if (set_device_b == 0)
         {
@@ -1528,8 +1528,8 @@ static void gattc_profile_c_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         if (set_device_c == 3)
         {
             // start_scan();
-            
-            xEventGroupSetBits(xEventGroup, EVENT_BIT_READY_ON);
+            c.blueTooth_state = true; 
+            change_led_color(c.led,Green_led);
         }
         if (set_device_c == 0)
         {
