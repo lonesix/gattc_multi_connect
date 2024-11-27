@@ -89,6 +89,36 @@ char* format_number_to_string(float number) {
     // 返回格式化后的字符串（注意：返回的字符串在静态缓冲区中，不应长时间保存或多次使用）
     return strdup(buffer); // 使用 strdup 分配新内存并复制字符串
 }
+// 定义字符串数组，存储百分比字符串
+const char* percentageStrings[] = {"0%",
+    "10%", "20%", "30%", "40%", "50%",
+    "60%", "70%", "80%", "90%", "100%"
+};
+#define MIN_VALUE 0.5f
+#define MAX_VALUE 10.0f
+#define NUM_PERCENTAGES 10
+#include "math.h"
+char *process_circles(float number)
+{
+    //取绝对值
+    float absValue = fabs(number);
+    float normalizedValue = absValue;
+
+        
+
+    if (normalizedValue > MAX_VALUE) {
+        normalizedValue = MAX_VALUE;
+    }
+    // 计算百分比索引
+    int index = (int)(normalizedValue/10.0f * (NUM_PERCENTAGES ));
+    if (index <0) {
+        index = 0;
+    } else if (index > 10) {
+        index = 10; 
+    }
+    return percentageStrings[index];
+
+}
 
 //4.2V电池电池电压与电量转换
 typedef struct {  
@@ -245,7 +275,7 @@ u16 filter_c(u16 value )
  else   i = 0;
  return Value;
 }
-
+#define BaiFenZhi0 "0%"
 /// @brief 
 /// @param A 
 /// @param B 
@@ -260,9 +290,14 @@ void sendStateJson(Device A,Device B,Device C)
     cJSON_AddStringToObject(device1, "device_id", A.device_id);
     cJSON_AddStringToObject(device1, "name", A.name);
     cJSON_AddNumberToObject(device1, "connection_status", A.blueTooth_state);
-    formatted_number = format_number_to_string(A.circles);
-    cJSON_AddStringToObject(device1, "circles",formatted_number);
-    free(formatted_number); // 释放格式化字符串的内存
+    formatted_number = process_circles(A.circles);
+    if (A.state == Close || A.state == Unknow)
+    {
+        formatted_number = BaiFenZhi0;
+    }
+    
+    cJSON_AddStringToObject(device1, "progress",formatted_number);
+    // free(formatted_number); // 释放格式化字符串的内存
     A.battery_level = getRemainingCapacity((float) filter_a(A.adc_value)/1000);
     cJSON_AddNumberToObject(device1, "battery_level", A.battery_level);
     cJSON_AddNumberToObject(device1, "switch_state", A.state);
@@ -273,9 +308,13 @@ void sendStateJson(Device A,Device B,Device C)
     cJSON_AddStringToObject(device2, "device_id", B.device_id);
     cJSON_AddStringToObject(device2, "name", B.name);
     cJSON_AddNumberToObject(device2, "connection_status", B.blueTooth_state);
-    formatted_number = format_number_to_string(B.circles);
-    cJSON_AddStringToObject(device2, "circles",formatted_number);
-    free(formatted_number); // 释放格式化字符串的内存
+    formatted_number = process_circles(B.circles);
+    if (B.state == Close || B.state == Unknow)
+    {
+        formatted_number = BaiFenZhi0;
+    }
+    cJSON_AddStringToObject(device2, "progress",formatted_number);
+    // free(formatted_number); // 释放格式化字符串的内存
     B.battery_level = getRemainingCapacity((float) filter_b(B.adc_value)/1000);
     cJSON_AddNumberToObject(device2, "battery_level", B.battery_level);
     cJSON_AddNumberToObject(device2, "switch_state", B.state);
@@ -286,9 +325,13 @@ void sendStateJson(Device A,Device B,Device C)
     cJSON_AddStringToObject(device3, "device_id", C.device_id);
     cJSON_AddStringToObject(device3, "name", C.name);
     cJSON_AddNumberToObject(device3, "connection_status", C.blueTooth_state);
-    formatted_number = format_number_to_string(C.circles);
-    cJSON_AddStringToObject(device3, "circles",formatted_number);
-    free(formatted_number); // 释放格式化字符串的内存
+    formatted_number = process_circles(C.circles);
+    if (C.state == Close || C.state == Unknow)
+    {
+        formatted_number = BaiFenZhi0;
+    }
+    cJSON_AddStringToObject(device3, "progress",formatted_number);
+    // free(formatted_number); // 释放格式化字符串的内存
     C.battery_level = getRemainingCapacity((float) filter_c(C.adc_value)/1000);
     cJSON_AddNumberToObject(device3, "battery_level", C.battery_level);
     cJSON_AddNumberToObject(device3, "switch_state", C.state);
