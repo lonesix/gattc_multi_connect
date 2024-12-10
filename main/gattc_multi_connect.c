@@ -144,7 +144,7 @@ static esp_gattc_descr_elem_t *descr_elem_result_b  = NULL;
 static esp_gattc_char_elem_t  *char_elem_result_c   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result_c  = NULL;
 
-static const char remote_device_name[3][20] = {"NodeB-V3.11","im600-V3.11", "im600-V3.07"};
+static const char remote_device_name[3][30] = {"NodeA-20241101-V3.11","NodeB-20241101-V3.11", "NodeC-20241101-V3.11"};
 
 static esp_ble_scan_params_t ble_scan_params = {
     .scan_type              = BLE_SCAN_TYPE_ACTIVE,

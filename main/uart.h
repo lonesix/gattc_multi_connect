@@ -21,8 +21,9 @@
 typedef enum{
     Unknow,
     Close,
-    MidProcess,
-    Open
+    Open,
+    MidProcess
+    
 }Device_State;
 
 typedef struct 
