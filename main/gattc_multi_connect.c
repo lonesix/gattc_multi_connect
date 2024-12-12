@@ -80,7 +80,7 @@ EventGroupHandle_t xEventGroup;
 #define INVALID_HANDLE   0
 
 void Cmd_RxUnpack(unsigned char *buf, unsigned char Dlen,float *quanshu,int *adcValue,uint8_t *gpioValue);
-
+void Cmd_RxUnpack_A(unsigned char *buf, unsigned char Dlen,float *quanshu,int *adcValue,uint8_t *gpioValue);
 /* Declare static functions */
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
 static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param);
@@ -446,7 +446,7 @@ static void gattc_profile_a_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
         }
         else
         {
-            Cmd_RxUnpack(p_data->notify.value,p_data->notify.value_len,&a.circles,&a.adc_value,&a.gpio_value);
+            Cmd_RxUnpack_A(p_data->notify.value,p_data->notify.value_len,&a.circles,&a.adc_value,&a.gpio_value);
             ESP_LOGI(GATTC_TAG,"圈数：%.3f,adc:%d,gpio:%d",a.circles,a.adc_value,a.gpio_value);
             ESP_LOGI(GATTC_TAG,"蓝牙连接状态：%d,阀门状态%d",a.blueTooth_state,a.state);
         }
